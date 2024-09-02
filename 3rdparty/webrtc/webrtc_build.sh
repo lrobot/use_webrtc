@@ -138,7 +138,6 @@ build_webrtc_one() {
     arg_target_os=$1
     arg_target_cpu=$2
     arg_target_debugrelease=$3
-    out_dir=${rel}
   args_val=' treat_warnings_as_errors=true fatal_linker_warnings=true rtc_include_tests=false ffmpeg_branding = "Chrome" rtc_use_h264=true'
   if [ "x$arg_target_debugrelease" == "xdebug" ]; then
     args_val+=' is_debug = true'
@@ -181,7 +180,7 @@ build_webrtc_one() {
 }
 build_webrtc() {
     # PWD=Open3D
-    WEBRTC_COMMIT_SHORT=$(git -C ../webrtc/src rev-parse --short=7 HEAD)
+    WEBRTC_COMMIT_SHORT=$(git -C webrtc/src rev-parse --short=7 HEAD)
 
     [ "`uname`" == "Darwin" ] && {
         build_webrtc_one ios arm64-v8a debug
