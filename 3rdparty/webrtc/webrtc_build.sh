@@ -101,6 +101,7 @@ download_webrtc_sources() {
     "custom_deps": {},
   },
 ]
+target_os = ["android", "unix"]
 '
     gclient sync --with_branch_heads
 
