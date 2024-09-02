@@ -115,7 +115,7 @@ target_os = ["ios", "mac"];
     "custom_deps": {},
   },
 ]
-target_os = ["android", "linux"];
+target_os = ["android"];
 '
     fi
 
