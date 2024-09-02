@@ -129,6 +129,10 @@ target_os = ["android"];
     git -C src submodule update --init --recursive
     echo gclient sync
     gclient sync -D --force --reset
+    echo in src
+    ls src
+    echo in third_party
+    ls src/third_party
     cd ..
     echo random.org
     curl "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" -o skipcache
@@ -140,7 +144,7 @@ build_webrtc_one() {
     arg_target_debugrelease=$1
     arg_target_os=$2
     arg_target_cpu=$3
-  args_val=' treat_warnings_as_errors=true fatal_linker_warnings=true rtc_build_examples=false rtc_include_tests=false ffmpeg_branding = "Chrome" rtc_use_h264=true rtc_use_h265=false'
+  args_val=' treat_warnings_as_errors=true fatal_linker_warnings=true rtc_build_examples=false rtc_include_tests=false ffmpeg_branding = "Chrome" rtc_use_h264=true rtc_use_h265=false rtc_enable_protobuf=false clang_use_chrome_plugins=false enable_dsyms=true  rtc_enable_sctp=false rtc_build_usrsctp=false'
   if [ "x$arg_target_debugrelease" == "xdebug" ]; then
     args_val+=' is_debug = true'
   else
@@ -151,7 +155,7 @@ build_webrtc_one() {
 	args_val+=' target_os="android"'
   fi
   if [ x"$arg_target_os" == x"ios" ] ; then
-	args_val+=' target_os="ios"'
+	args_val+=' target_os="ios" ios_enable_code_signing = false'
   fi
   if [ x"$arg_target_os" == x"mac" ] ; then
 	args_val+=' target_os="mac"'
@@ -185,8 +189,8 @@ build_webrtc_one() {
 #ref: https://github.com/rfazi/android_webrtc_build/blob/main/entrypoint.sh
 function androidMoveLibs() {
   LIB_FOLDER=$WEBRTC_BUILD_ROOT/output/libs
-  mkdir -p $LIB_FOLDER/"${1}${2}${3}"
-  cp -rv $WEBRTC_BUILD_ROOT/src/out/${1}${2}${3}/libjingle_peerconnection_so.so $LIB_FOLDER/"${1}${2}${3}"
+  mkdir -p $LIB_FOLDER/${1}/${2}/${3}
+  cp -rv $WEBRTC_BUILD_ROOT/src/out/${1}/${2}/${3}/libjingle_peerconnection_so.so $LIB_FOLDER/${1}/${2}/${3}
 }
 function androidMoveJavaCode() {
     JAVA_FOLDER=$WEBRTC_BUILD_ROOT/output/java/org/webrtc
@@ -195,16 +199,23 @@ function androidMoveJavaCode() {
     cp -rv $WEBRTC_BUILD_ROOT/src/sdk/android/api/org/webrtc/* $JAVA_FOLDER/
     cp -rv $WEBRTC_BUILD_ROOT/src/rtc_base/java/src/org/webrtc/* $JAVA_FOLDER/
     #cp -rv $WEBRTC_BUILD_ROOT/src/modules/audio_device/android/java/src/org/webrtc/* $JAVA_FOLDER/
-    cp -rv $WEBRTC_BUILD_ROOT/src/out/${1}${2}${3}/gen/sdk/android/video_api_java/generated_java/input_srcjars/org/webrtc/* $JAVA_FOLDER/
-    cp -rv $WEBRTC_BUILD_ROOT/src/out/${1}${2}${3}/gen/sdk/android/peerconnection_java/generated_java/input_srcjars/org/webrtc/* $JAVA_FOLDER/
+    cp -rv $WEBRTC_BUILD_ROOT/src/out/${1}/${2}/${3}/gen/sdk/android/video_api_java/generated_java/input_srcjars/org/webrtc/* $JAVA_FOLDER/
+    cp -rv $WEBRTC_BUILD_ROOT/src/out/${1}/${2}/${3}/gen/sdk/android/peerconnection_java/generated_java/input_srcjars/org/webrtc/* $JAVA_FOLDER/
 }
 function androidRemoveBuild() {
-    rm -rf $WEBRTC_BUILD_ROOT/src/out/${1}${2}${3}
+    rm -rf $WEBRTC_BUILD_ROOT/src/out/${1}/${2}/${3}
+}
+function androidGenGradle() {
+    pushd ${WEBRTC_BUILD_ROOT}/src
+    ./build/android/gradle/generate_gradle.py --output-directory $WEBRTC_BUILD_ROOT/src/out/${1}/${2}/${3} --target "//examples:AppRTCMobile" --use-gradle-process-resources --split-projects
+    popd
 }
 function android_build_one() {
+
     build_webrtc_one $1 android $2
     androidMoveLibs $1 android $2
     androidMoveJavaCode $1 android $2
+    androidGenGradle $1 android $2
     androidRemoveBuild $1 android $2
 }
 build_webrtc() {
