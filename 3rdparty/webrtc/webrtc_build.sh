@@ -207,7 +207,7 @@ function androidRemoveBuild() {
 }
 function androidGenGradle() {
     pushd ${WEBRTC_BUILD_ROOT}/src
-    ./build/android/gradle/generate_gradle.py --output-directory $WEBRTC_BUILD_ROOT/src/out/${1}/${2}/${3} --target "//examples:AppRTCMobile" --use-gradle-process-resources --split-projects
+    ./build/android/gradle/generate_gradle.py --output-directory out/${1}/${2}/${3} --target "//examples:AppRTCMobile" --use-gradle-process-resources --split-projects
     popd
 }
 function android_build_one() {
