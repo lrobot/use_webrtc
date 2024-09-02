@@ -140,7 +140,7 @@ build_webrtc_one() {
     arg_target_debugrelease=$1
     arg_target_os=$2
     arg_target_cpu=$3
-  args_val=' treat_warnings_as_errors=true fatal_linker_warnings=true rtc_include_tests=false ffmpeg_branding = "Chrome" rtc_use_h264=true'
+  args_val=' treat_warnings_as_errors=true fatal_linker_warnings=true rtc_build_examples=false rtc_include_tests=false ffmpeg_branding = "Chrome" rtc_use_h264=true rtc_use_h265=false'
   if [ "x$arg_target_debugrelease" == "xdebug" ]; then
     args_val+=' is_debug = true'
   else
