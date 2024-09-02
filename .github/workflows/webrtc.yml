@@ -31,12 +31,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, macos-12]
-        GLIBCXX_USE_CXX11_ABI: [0, 1]
-        exclude:
-          - os: macos-12
-            GLIBCXX_USE_CXX11_ABI: 0
-    env:
-      GLIBCXX_USE_CXX11_ABI: ${{ matrix.GLIBCXX_USE_CXX11_ABI }}
+#        GLIBCXX_USE_CXX11_ABI: [0, 1]
+#        exclude:
+#          - os: macos-12
+#            GLIBCXX_USE_CXX11_ABI: 0
+#    env:
+#      GLIBCXX_USE_CXX11_ABI: ${{ matrix.GLIBCXX_USE_CXX11_ABI }}
 
     steps:
       - name: Checkout source code
