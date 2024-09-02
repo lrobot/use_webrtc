@@ -49,7 +49,6 @@ jobs:
           remove-docker-images: 'true'
           remove-codeql: 'true'
           remove-haskell: 'true'
-          remove-haskell: 'true'
           remove-android: 'true'
       - name: df0
         run: |
