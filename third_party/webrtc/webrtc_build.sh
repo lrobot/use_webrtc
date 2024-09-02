@@ -58,10 +58,10 @@ install_dependencies_ubuntu() {
         git \
         gnupg \
         libglib2.0-dev \
-        python \
-        python-pip \
-        python-setuptools \
-        python-wheel \
+        python3 \
+        python3-pip \
+        python3-setuptools \
+        python3-wheel \
         software-properties-common \
         tree \
         curl
@@ -90,7 +90,19 @@ download_webrtc_sources() {
     echo Get WebRTC
     mkdir webrtc
     cd webrtc
-    fetch webrtc
+    #fetch webrtc
+    #fetch -n webrtc
+    gclient config --spec 'solutions = [
+  {
+    "name": "src",
+    "url": "https://github.com/lrobot/webrtc.git",
+    "deps_file": "DEPS",
+    "managed": False,
+    "custom_deps": {},
+  },
+]
+'
+    gclient sync --with_branch_heads
 
     # Checkout to a specific version
     # Ref: https://chromium.googlesource.com/chromium/src/+/master/docs/building_old_revisions.md
@@ -106,15 +118,6 @@ download_webrtc_sources() {
 
 build_webrtc() {
     # PWD=Open3D
-    OPEN3D_DIR="$PWD"
-    echo Apply patches
-    cp 3rdparty/webrtc/{CMakeLists.txt,webrtc_common.cmake} ../webrtc
-    git -C ../webrtc/src apply \
-        "$OPEN3D_DIR"/3rdparty/webrtc/0001-src-enable-rtc_use_cxx11_abi-option.patch
-    git -C ../webrtc/src/build apply \
-        "$OPEN3D_DIR"/3rdparty/webrtc/0001-build-enable-rtc_use_cxx11_abi-option.patch
-    git -C ../webrtc/src/third_party apply \
-        "$OPEN3D_DIR"/3rdparty/webrtc/0001-third_party-enable-rtc_use_cxx11_abi-option.patch
     WEBRTC_COMMIT_SHORT=$(git -C ../webrtc/src rev-parse --short=7 HEAD)
 
     echo Build WebRTC
@@ -144,3 +147,13 @@ build_webrtc() {
     cmake -E sha256sum "$webrtc_package" | tee "checksum_${webrtc_package%%.*}.txt"
     ls -alh "$webrtc_package"
 }
+
+
+if [ "x$1" == "x" ]; then
+    echo "Usage: $0 install_dependencies_ubuntu|download_webrtc_sources|build_webrtc"
+    exit 1
+else
+    $1
+fi
+
+

@@ -50,18 +50,19 @@ jobs:
       - name: Install dependencies
         if: ${{ matrix.os == 'ubuntu-20.04' }}
         run: |
-          source 3rdparty/webrtc/webrtc_build.sh
-          install_dependencies_ubuntu
+          echo "install_dependencies_ubuntu"
+          3rdparty/webrtc/webrtc_build.sh install_dependencies_ubuntu
+          
 
       - name: Download WebRTC sources
         run: |
-          source 3rdparty/webrtc/webrtc_build.sh
-          download_webrtc_sources
+          echo "download_webrtc_sources"
+          3rdparty/webrtc/webrtc_build.sh download_webrtc_sources
 
       - name: Build WebRTC
         run: |
-          source 3rdparty/webrtc/webrtc_build.sh
-          build_webrtc
+          echo "build_webrtc"
+          3rdparty/webrtc/webrtc_build.sh build_webrtc
 
       - name: Upload WebRTC
         uses: actions/upload-artifact@v4
