@@ -92,7 +92,9 @@ download_webrtc_sources() {
     cd webrtc
     #fetch webrtc
     #fetch -n webrtc
-    gclient config --spec 'solutions = [
+
+    if [ "`uname`" == "Darwin" ]; then
+            gclient config --spec 'solutions = [
   {
     "name": "src",
     "url": "https://github.com/lrobot/webrtc.git",
@@ -101,8 +103,22 @@ download_webrtc_sources() {
     "custom_deps": {},
   },
 ]
-target_os = ["android", "unix"]
+target_os = ["ios", "mac"];
 '
+    else
+     gclient config --spec 'solutions = [
+  {
+    "name": "src",
+    "url": "https://github.com/lrobot/webrtc.git",
+    "deps_file": "DEPS",
+    "managed": False,
+    "custom_deps": {},
+  },
+]
+target_os = ["android", "linux"];
+'
+    fi
+
     gclient sync --with_branch_heads
 
     # Checkout to a specific version
