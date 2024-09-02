@@ -7,11 +7,11 @@ on:
       webrtc_commit:
         description: 'Specify WebRTC commit to build.'
         required: false
-        default: '60e674842ebae283cc6b2627f4b6f2f8186f3317'  # Date: Wed Apr 7 19:12:13 2021 +0200
+        default: 'dd86c95b6aa67519664c9d9ed13489932300ca0a'  # Date: Sun Sep 1 21:06:52 2024 -0700
       depot_tools_commit:
         description: 'Specify Depot Tools commit to to use for the build.'
         required: false
-        default: 'e1a98941d3ab10549be6d82d0686bb0fb91ec903' # Date: Wed Apr 7 21:35:29 2021 +0000
+        default: 'b89b4403516e5bf09bfdc94821453414eca168b4' # Date: Mon Sep 2 01:08:43 2024 +0000
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
