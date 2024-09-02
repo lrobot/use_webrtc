@@ -188,30 +188,37 @@ build_webrtc_one() {
 }
 #ref: https://github.com/rfazi/android_webrtc_build/blob/main/entrypoint.sh
 function androidMoveLibs() {
-  LIB_FOLDER=$WEBRTC_BUILD_ROOT/output/libs
+  pushd ${WEBRTC_BUILD_ROOT}
+  LIB_FOLDER=output/libs
   mkdir -p $LIB_FOLDER/${1}/${2}/${3}
-  cp -rv $WEBRTC_BUILD_ROOT/src/out/${1}/${2}/${3}/libjingle_peerconnection_so.so $LIB_FOLDER/${1}/${2}/${3}
+  cp -rv /src/out/${1}/${2}/${3}/libjingle_peerconnection_so.so $LIB_FOLDER/${1}/${2}/${3}
+  popd
 }
 function androidMoveJavaCode() {
-    JAVA_FOLDER=$WEBRTC_BUILD_ROOT/output/java/org/webrtc
+    pushd ${WEBRTC_BUILD_ROOT}
+    JAVA_FOLDER=output/java/org/webrtc
     mkdir -p $JAVA_FOLDER
-    cp -rv $WEBRTC_BUILD_ROOT/src/sdk/android/src/java/org/webrtc/* $JAVA_FOLDER/
-    cp -rv $WEBRTC_BUILD_ROOT/src/sdk/android/api/org/webrtc/* $JAVA_FOLDER/
-    cp -rv $WEBRTC_BUILD_ROOT/src/rtc_base/java/src/org/webrtc/* $JAVA_FOLDER/
-    #cp -rv $WEBRTC_BUILD_ROOT/src/modules/audio_device/android/java/src/org/webrtc/* $JAVA_FOLDER/
-    cp -rv $WEBRTC_BUILD_ROOT/src/out/${1}/${2}/${3}/gen/sdk/android/video_api_java/generated_java/input_srcjars/org/webrtc/* $JAVA_FOLDER/
-    cp -rv $WEBRTC_BUILD_ROOT/src/out/${1}/${2}/${3}/gen/sdk/android/peerconnection_java/generated_java/input_srcjars/org/webrtc/* $JAVA_FOLDER/
+    cp -rv src/sdk/android/src/java/org/webrtc/* $JAVA_FOLDER/
+    cp -rv src/sdk/android/api/org/webrtc/* $JAVA_FOLDER/
+    cp -rv src/rtc_base/java/src/org/webrtc/* $JAVA_FOLDER/
+    #cp -rv rc/modules/audio_device/android/java/src/org/webrtc/* $JAVA_FOLDER/
+    cp -rv src/out/${1}/${2}/${3}/gen/sdk/android/video_api_java/generated_java/input_srcjars/org/webrtc/* $JAVA_FOLDER/
+    cp -rv src/out/${1}/${2}/${3}/gen/sdk/android/peerconnection_java/generated_java/input_srcjars/org/webrtc/* $JAVA_FOLDER/
+    popd
 }
 function androidRemoveBuild() {
-    rm -rf $WEBRTC_BUILD_ROOT/src/out/${1}/${2}/${3}
+    pushd ${WEBRTC_BUILD_ROOT}
+    rm -rf src/out/${1}/${2}/${3}
+    popd
 }
 function androidGenGradle() {
-    pushd ${WEBRTC_BUILD_ROOT}/src
-    ./build/android/gradle/generate_gradle.py --output-directory out/${1}/${2}/${3} --target "//examples:AppRTCMobile" --use-gradle-process-resources --split-projects
+    pushd ${WEBRTC_BUILD_ROOT}
+    mkdir -p output
+    ./build/android/gradle/generate_gradle.py --output-directory src/out/${1}/${2}/${3} --target "//examples:AppRTCMobile" --use-gradle-process-resources --split-projects
+    cp -rv out/${1}/${2}/${3}/gradle output/gradle
     popd
 }
 function android_build_one() {
-
     build_webrtc_one $1 android $2
     androidMoveLibs $1 android $2
     androidMoveJavaCode $1 android $2
