@@ -133,9 +133,65 @@ target_os = ["android", "linux"];
     popd
 }
 
+build_webrtc_one() {
+    arg_target_os=$1
+    arg_target_cpu=$2
+    arg_target_debugrelease=$3
+    out_dir=${rel}
+  args_val=' treat_warnings_as_errors=true fatal_linker_warnings=true rtc_include_tests=false ffmpeg_branding = "Chrome" rtc_use_h264=true'
+  if [ "x$arg_target_debugrelease" == "xdebug" ]; then
+    args_val+=' is_debug = true'
+  else
+    args_val+=' is_debug = false'
+  fi
+
+  if [ x"$arg_target_os" == x"android" ] ; then
+	args_val+=' target_os="android"'
+  fi
+if [ x"$arg_target_os" == x"ios" ] ; then
+	args_val+=' target_os="ios"'
+  fi
+if [ x"$arg_target_os" == x"mac" ] ; then
+	args_val+=' target_os="mac"'
+  fi
+
+
+  if [ x"$arg_target_cpu" == x"armeabi" ] ; then
+	args_val+=' target_cpu="arm"'
+  fi
+  if [ x"$arg_target_cpu" == x"armeabi-v7a" ] ; then
+	args_val+=' target_cpu="arm" arm_version=7'
+  fi
+  if [ x"$arg_target_cpu" == x"arm64" ] ; then
+	args_val+=' target_cpu="arm64"'
+  fi
+  if [ x"$arg_target_cpu" == x"arm64-v8a" ] ; then
+	args_val+=' target_cpu="arm64" arm_version=8'
+  fi
+  if [ x"$arg_target_cpu" == x"x86" ] ; then
+	args_val+=' target_cpu="x86"'
+  fi
+  if [ x"$arg_target_cpu" == x"x64" ] ; then
+	args_val+=' target_cpu="x64"'
+  fi
+
+  gn gen --args="$args_val" out/${arg_target_os}/${arg_target_debugrelease}/${arg_target_cpu} 
+}
 build_webrtc() {
     # PWD=Open3D
     WEBRTC_COMMIT_SHORT=$(git -C ../webrtc/src rev-parse --short=7 HEAD)
+
+    [ "`uname`" == "Darwin" ] && {
+        build_webrtc_one ios arm64-v8a debug
+        build_webrtc_one ios arm64-v8a release
+        build_webrtc_one mac x64 debug
+        build_webrtc_one mac x64 release
+    }
+
+    [ "`uname`" == "Linux" ] && {
+        build_webrtc_one android arm64 debug
+        build_webrtc_one android arm64 release
+    }
 
     echo Build WebRTC
     mkdir ../webrtc/build
