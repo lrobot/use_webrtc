@@ -40,6 +40,7 @@ jobs:
 
     steps:
       - name: Maximize build space
+        if: ${{ matrix.os == 'ubuntu-20.04' }}
         uses: easimon/maximize-build-space@master
         with:
           overprovision-lvm: 'true'

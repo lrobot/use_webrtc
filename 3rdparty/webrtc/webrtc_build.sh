@@ -42,7 +42,7 @@ DEPOT_TOOLS_COMMIT=${DEPOT_TOOLS_COMMIT:-e1a98941d3ab10549be6d82d0686bb0fb91ec90
 GLIBCXX_USE_CXX11_ABI=${GLIBCXX_USE_CXX11_ABI:-0}
 NPROC=${NPROC:-$(getconf _NPROCESSORS_ONLN)} # POSIX: MacOS + Linux
 SUDO=${SUDO:-sudo}                           # Set to command if running inside docker
-export PATH="$PWD/../depot_tools":${PATH}    # $(basename $PWD) == Open3D
+export PATH="$PWD/depot_tools":${PATH}    # $(basename $PWD) == Open3D
 export DEPOT_TOOLS_UPDATE=0
 
 install_dependencies_ubuntu() {
@@ -81,7 +81,7 @@ install_dependencies_ubuntu() {
 
 download_webrtc_sources() {
     # PWD=Open3D
-    pushd ..
+    pushd .
     echo Get depot_tools
     git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
     git -C depot_tools checkout $DEPOT_TOOLS_COMMIT
@@ -134,6 +134,7 @@ target_os = ["android"];
 }
 
 build_webrtc_one() {
+  pushd webrtc/src
     arg_target_os=$1
     arg_target_cpu=$2
     arg_target_debugrelease=$3
@@ -148,10 +149,10 @@ build_webrtc_one() {
   if [ x"$arg_target_os" == x"android" ] ; then
 	args_val+=' target_os="android"'
   fi
-if [ x"$arg_target_os" == x"ios" ] ; then
+  if [ x"$arg_target_os" == x"ios" ] ; then
 	args_val+=' target_os="ios"'
   fi
-if [ x"$arg_target_os" == x"mac" ] ; then
+  if [ x"$arg_target_os" == x"mac" ] ; then
 	args_val+=' target_os="mac"'
   fi
 
@@ -176,6 +177,7 @@ if [ x"$arg_target_os" == x"mac" ] ; then
   fi
 
   gn gen --args="$args_val" out/${arg_target_os}/${arg_target_debugrelease}/${arg_target_cpu} 
+  popd
 }
 build_webrtc() {
     # PWD=Open3D
@@ -191,34 +193,10 @@ build_webrtc() {
     [ "`uname`" == "Linux" ] && {
         build_webrtc_one android arm64 debug
         build_webrtc_one android arm64 release
+        ls -alh webrtc/src/out/android/debug/arm64
+        ls -alh webrtc/src/out/android/release/arm64
     }
 
-    echo Build WebRTC
-    mkdir ../webrtc/build
-    pushd ../webrtc/build
-    cmake -DCMAKE_INSTALL_PREFIX=../../webrtc_release \
-        -DGLIBCXX_USE_CXX11_ABI=${GLIBCXX_USE_CXX11_ABI} \
-        ..
-    make -j$NPROC
-    make install
-    popd # PWD=Open3D
-    pushd ..
-    tree -L 2 webrtc_release || ls webrtc_release/*
-
-    echo Package WebRTC
-    if [[ $(uname -s) == 'Linux' ]]; then
-        tar -czf \
-            "$OPEN3D_DIR/webrtc_${WEBRTC_COMMIT_SHORT}_linux_cxx-abi-${GLIBCXX_USE_CXX11_ABI}.tar.gz" \
-            webrtc_release
-    elif [[ $(uname -s) == 'Darwin' ]]; then
-        tar -czf \
-            "$OPEN3D_DIR/webrtc_${WEBRTC_COMMIT_SHORT}_macos.tar.gz" \
-            webrtc_release
-    fi
-    popd # PWD=Open3D
-    webrtc_package=$(ls webrtc_*.tar.gz)
-    cmake -E sha256sum "$webrtc_package" | tee "checksum_${webrtc_package%%.*}.txt"
-    ls -alh "$webrtc_package"
 }
 
 
