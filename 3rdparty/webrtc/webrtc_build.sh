@@ -222,7 +222,7 @@ function android_build_one() {
     build_webrtc_one $1 android $2
     androidMoveLibs $1 android $2
     androidMoveJavaCode $1 android $2
-    androidGenGradle $1 android $2
+    # androidGenGradle $1 android $2
     androidRemoveBuild $1 android $2
 }
 build_webrtc() {
