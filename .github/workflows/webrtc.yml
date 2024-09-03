@@ -32,7 +32,7 @@ jobs:
       matrix:
         # https://github.com/actions/runner-images/blob/main/images/ubuntu
         # https://github.com/actions/runner-images/tree/main/images/macos
-        os: [ubuntu-22.04, macos-14]
+        os: [ubuntu-22.04] #, macos-14
 #        GLIBCXX_USE_CXX11_ABI: [0, 1]
 #        exclude:
 #          - os: macos-12
