@@ -191,7 +191,7 @@ function androidMoveLibs() {
   pushd ${WEBRTC_BUILD_ROOT}
   LIB_FOLDER=output/libs
   mkdir -p $LIB_FOLDER/${1}/${2}/${3}
-  cp -rv /src/out/${1}/${2}/${3}/libjingle_peerconnection_so.so $LIB_FOLDER/${1}/${2}/${3}
+  cp -rv src/out/${1}/${2}/${3}/libjingle_peerconnection_so.so $LIB_FOLDER/${1}/${2}/${3}
   popd
 }
 function androidMoveJavaCode() {
