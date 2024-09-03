@@ -30,6 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # https://github.com/actions/runner-images/blob/main/images/ubuntu
         # https://github.com/actions/runner-images/tree/main/images/macos
         os: [ubuntu-22.04, macos-14]
 #        GLIBCXX_USE_CXX11_ABI: [0, 1]
@@ -41,7 +42,7 @@ jobs:
 
     steps:
       - name: Maximize build space
-        if: ${{ matrix.os == 'ubuntu-20.04' }}
+        if: runner.os == 'Linux'
         uses: easimon/maximize-build-space@master
         with:
           overprovision-lvm: 'true'
@@ -65,12 +66,14 @@ jobs:
           python-version: 3.8
       - name: Set up Mac Env
         run: |
-          if [ ${{ matrix.os }} == 'macos-12' ]; then
-            echo "Setting up Mac environment"
-            sudo softwareupdate --install-rosetta
-            ls `xcode-select -p`/Platforms/MacOSX.platform/Developer/SDKs
-            brew install cmake ninja
-          fi
+          xcrun --show-sdk-version
+          xcode-select -p
+# if [ ${{ matrix.os }} == 'macos-12' ]; then
+#   echo "Setting up Mac environment"
+#   sudo softwareupdate --install-rosetta
+#   ls `xcode-select -p`/Platforms/MacOSX.platform/Developer/SDKs
+#   brew install cmake ninja
+# fi
 
       - name: Install dependencies
         if: ${{ matrix.os == 'ubuntu-20.04' }}
