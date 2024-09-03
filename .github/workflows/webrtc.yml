@@ -65,9 +65,14 @@ jobs:
         with:
           python-version: 3.8
       - name: Set up Mac Env
+        if: runner.os == 'macOS'
         run: |
           xcrun --show-sdk-version
           xcode-select -p
+      - name: Set up Win Env
+        if: runner.os == 'Windows'
+        run: |
+          dir c:\
 # if [ ${{ matrix.os }} == 'macos-12' ]; then
 #   echo "Setting up Mac environment"
 #   sudo softwareupdate --install-rosetta
