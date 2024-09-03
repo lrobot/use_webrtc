@@ -30,7 +30,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, macos-12]
+        # https://github.com/actions/runner-images/tree/main/images/macos
+        os: [ubuntu-22.04, macos-14]
 #        GLIBCXX_USE_CXX11_ABI: [0, 1]
 #        exclude:
 #          - os: macos-12
@@ -62,6 +63,14 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.8
+      - name: Set up Mac Env
+        run: |
+          if [ ${{ matrix.os }} == 'macos-12' ]; then
+            echo "Setting up Mac environment"
+            sudo softwareupdate --install-rosetta
+            ls `xcode-select -p`/Platforms/MacOSX.platform/Developer/SDKs
+            brew install cmake ninja
+          fi
 
       - name: Install dependencies
         if: ${{ matrix.os == 'ubuntu-20.04' }}
