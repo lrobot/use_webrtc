@@ -42,8 +42,10 @@ DEPOT_TOOLS_COMMIT=${DEPOT_TOOLS_COMMIT:-e1a98941d3ab10549be6d82d0686bb0fb91ec90
 GLIBCXX_USE_CXX11_ABI=${GLIBCXX_USE_CXX11_ABI:-0}
 NPROC=${NPROC:-$(getconf _NPROCESSORS_ONLN)} # POSIX: MacOS + Linux
 SUDO=${SUDO:-sudo}                           # Set to command if running inside docker
-export PATH="$PWD/../depot_tools":${PATH}    # $(basename $PWD) == Open3D
+export PATH="$PWD/depot_tools":${PATH}    # $(basename $PWD) == Open3D
 export DEPOT_TOOLS_UPDATE=0
+
+WEBRTC_BUILD_ROOT=webrtc_build_root
 
 install_dependencies_ubuntu() {
     options="$(echo "$@" | tr ' ' '|')"
@@ -81,18 +83,20 @@ install_dependencies_ubuntu() {
 
 download_webrtc_sources() {
     # PWD=Open3D
-    pushd ..
+    pushd .
     echo Get depot_tools
     git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
     git -C depot_tools checkout $DEPOT_TOOLS_COMMIT
     command -V fetch
 
     echo Get WebRTC
-    mkdir webrtc
-    cd webrtc
+    mkdir ${WEBRTC_BUILD_ROOT}
+    cd ${WEBRTC_BUILD_ROOT}
     #fetch webrtc
     #fetch -n webrtc
-    gclient config --spec 'solutions = [
+
+    if [ "`uname`" == "Darwin" ]; then
+            gclient config --spec 'solutions = [
   {
     "name": "src",
     "url": "https://github.com/lrobot/webrtc.git",
@@ -101,7 +105,22 @@ download_webrtc_sources() {
     "custom_deps": {},
   },
 ]
+target_os = ["ios", "mac"];
 '
+    else
+     gclient config --spec 'solutions = [
+  {
+    "name": "src",
+    "url": "https://github.com/lrobot/webrtc.git",
+    "deps_file": "DEPS",
+    "managed": False,
+    "custom_deps": {},
+  },
+]
+target_os = ["android"];
+'
+    fi
+
     gclient sync --with_branch_heads
 
     # Checkout to a specific version
@@ -110,42 +129,123 @@ download_webrtc_sources() {
     git -C src submodule update --init --recursive
     echo gclient sync
     gclient sync -D --force --reset
+    echo in src
+    ls src
+    echo in third_party
+    ls src/third_party
     cd ..
     echo random.org
     curl "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" -o skipcache
     popd
 }
 
+build_webrtc_one() {
+  pushd ${WEBRTC_BUILD_ROOT}/src
+    arg_target_debugrelease=$1
+    arg_target_os=$2
+    arg_target_cpu=$3
+  args_val=' treat_warnings_as_errors=true fatal_linker_warnings=true rtc_build_examples=false rtc_include_tests=false ffmpeg_branding = "Chrome" rtc_use_h264=true rtc_use_h265=false rtc_enable_protobuf=false clang_use_chrome_plugins=false enable_dsyms=true  rtc_enable_sctp=false rtc_build_usrsctp=false'
+  if [ "x$arg_target_debugrelease" == "xdebug" ]; then
+    args_val+=' is_debug = true'
+  else
+    args_val+=' is_debug = false'
+  fi
+
+  if [ x"$arg_target_os" == x"android" ] ; then
+	args_val+=' target_os="android"'
+  fi
+  if [ x"$arg_target_os" == x"ios" ] ; then
+	args_val+=' target_os="ios" ios_enable_code_signing = false'
+  fi
+  if [ x"$arg_target_os" == x"mac" ] ; then
+	args_val+=' target_os="mac"'
+  fi
+
+
+  if [ x"$arg_target_cpu" == x"armeabi" ] ; then
+	args_val+=' target_cpu="arm"'
+  fi
+  if [ x"$arg_target_cpu" == x"armeabi-v7a" ] ; then
+	args_val+=' target_cpu="arm" arm_version=7'
+  fi
+  if [ x"$arg_target_cpu" == x"arm64" ] ; then
+	args_val+=' target_cpu="arm64"'
+  fi
+  if [ x"$arg_target_cpu" == x"arm64-v8a" ] ; then
+	args_val+=' target_cpu="arm64" arm_version=8'
+  fi
+  if [ x"$arg_target_cpu" == x"x86" ] ; then
+	args_val+=' target_cpu="x86"'
+  fi
+  if [ x"$arg_target_cpu" == x"x64" ] ; then
+	args_val+=' target_cpu="x64"'
+  fi
+
+  gn gen --args="$args_val" out/${arg_target_debugrelease}/${arg_target_os}/${arg_target_cpu}
+  ninja -C out/${arg_target_debugrelease}/${arg_target_os}/${arg_target_cpu}
+  ls -alh out/${arg_target_debugrelease}/${arg_target_os}/${arg_target_cpu}
+  popd
+}
+#ref: https://github.com/rfazi/android_webrtc_build/blob/main/entrypoint.sh
+function androidMoveLibs() {
+  pushd ${WEBRTC_BUILD_ROOT}
+  LIB_FOLDER=output/libs
+  mkdir -p $LIB_FOLDER/${1}/${2}/${3}
+  cp -rv src/out/${1}/${2}/${3}/libjingle_peerconnection_so.so $LIB_FOLDER/${1}/${2}/${3}
+  popd
+}
+function androidMoveJavaCode() {
+    pushd ${WEBRTC_BUILD_ROOT}
+    JAVA_FOLDER=output/java/org/webrtc
+    mkdir -p $JAVA_FOLDER
+    cp -rv src/sdk/android/src/java/org/webrtc/* $JAVA_FOLDER/
+    cp -rv src/sdk/android/api/org/webrtc/* $JAVA_FOLDER/
+    cp -rv src/rtc_base/java/src/org/webrtc/* $JAVA_FOLDER/
+    #cp -rv rc/modules/audio_device/android/java/src/org/webrtc/* $JAVA_FOLDER/
+    cp -rv src/out/${1}/${2}/${3}/gen/sdk/android/video_api_java/generated_java/input_srcjars/org/webrtc/* $JAVA_FOLDER/
+    cp -rv src/out/${1}/${2}/${3}/gen/sdk/android/peerconnection_java/generated_java/input_srcjars/org/webrtc/* $JAVA_FOLDER/
+    popd
+}
+function androidRemoveBuild() {
+    pushd ${WEBRTC_BUILD_ROOT}
+    rm -rf src/out/${1}/${2}/${3}
+    popd
+}
+function androidGenGradle() {
+    mkdir -p ${WEBRTC_BUILD_ROOT}/output
+    pushd ${WEBRTC_BUILD_ROOT}/src
+    ./build/android/gradle/generate_gradle.py --output-directory out/${1}/${2}/${3} --target "//examples:AppRTCMobile" --use-gradle-process-resources --split-projects
+    cp -a out/${1}/${2}/${3}/gradle ../output/gradle
+    popd
+}
+function android_build_one() {
+    build_webrtc_one $1 android $2
+    androidMoveLibs $1 android $2
+    androidMoveJavaCode $1 android $2
+    # androidGenGradle $1 android $2
+    androidRemoveBuild $1 android $2
+}
 build_webrtc() {
     # PWD=Open3D
-    WEBRTC_COMMIT_SHORT=$(git -C ../webrtc/src rev-parse --short=7 HEAD)
+    WEBRTC_COMMIT_SHORT=$(git -C ${WEBRTC_BUILD_ROOT}/src rev-parse --short=7 HEAD)
 
-    echo Build WebRTC
-    mkdir ../webrtc/build
-    pushd ../webrtc/build
-    cmake -DCMAKE_INSTALL_PREFIX=../../webrtc_release \
-        -DGLIBCXX_USE_CXX11_ABI=${GLIBCXX_USE_CXX11_ABI} \
-        ..
-    make -j$NPROC
-    make install
-    popd # PWD=Open3D
-    pushd ..
-    tree -L 2 webrtc_release || ls webrtc_release/*
+    [ "`uname`" == "Darwin" ] && {
+        build_webrtc_one debug ios arm64-v8a
+        build_webrtc_one release ios arm64-v8a
+        build_webrtc_one debub mac x64
+        build_webrtc_one release mac x64
+    }
 
-    echo Package WebRTC
-    if [[ $(uname -s) == 'Linux' ]]; then
-        tar -czf \
-            "$OPEN3D_DIR/webrtc_${WEBRTC_COMMIT_SHORT}_linux_cxx-abi-${GLIBCXX_USE_CXX11_ABI}.tar.gz" \
-            webrtc_release
-    elif [[ $(uname -s) == 'Darwin' ]]; then
-        tar -czf \
-            "$OPEN3D_DIR/webrtc_${WEBRTC_COMMIT_SHORT}_macos.tar.gz" \
-            webrtc_release
-    fi
-    popd # PWD=Open3D
-    webrtc_package=$(ls webrtc_*.tar.gz)
-    cmake -E sha256sum "$webrtc_package" | tee "checksum_${webrtc_package%%.*}.txt"
-    ls -alh "$webrtc_package"
+    [ "`uname`" == "Linux" ] && {
+        # android_build_one debug armeabi
+        # android_build_one release armeabi
+        android_build_one debug arm64
+        # android_build_one release arm64
+
+        find $WEBRTC_BUILD_ROOT/output
+        tar -czvf webrtc_${WEBRTC_COMMIT_SHORT}_android.tar.gz -C $WEBRTC_BUILD_ROOT/output .
+    }
+
 }
 
 

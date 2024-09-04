@@ -7,11 +7,11 @@ on:
       webrtc_commit:
         description: 'Specify WebRTC commit to build.'
         required: false
-        default: '60e674842ebae283cc6b2627f4b6f2f8186f3317'  # Date: Wed Apr 7 19:12:13 2021 +0200
+        default: 'dd86c95b6aa67519664c9d9ed13489932300ca0a'  # Date: Sun Sep 1 21:06:52 2024 -0700
       depot_tools_commit:
         description: 'Specify Depot Tools commit to to use for the build.'
         required: false
-        default: 'e1a98941d3ab10549be6d82d0686bb0fb91ec903' # Date: Wed Apr 7 21:35:29 2021 +0000
+        default: 'b89b4403516e5bf09bfdc94821453414eca168b4' # Date: Mon Sep 2 01:08:43 2024 +0000
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -30,15 +30,33 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, macos-12]
-        GLIBCXX_USE_CXX11_ABI: [0, 1]
-        exclude:
-          - os: macos-12
-            GLIBCXX_USE_CXX11_ABI: 0
-    env:
-      GLIBCXX_USE_CXX11_ABI: ${{ matrix.GLIBCXX_USE_CXX11_ABI }}
+        # https://github.com/actions/runner-images/blob/main/images/ubuntu
+        # https://github.com/actions/runner-images/tree/main/images/macos
+        os: [ubuntu-22.04] #, macos-14
+#        GLIBCXX_USE_CXX11_ABI: [0, 1]
+#        exclude:
+#          - os: macos-12
+#            GLIBCXX_USE_CXX11_ABI: 0
+#    env:
+#      GLIBCXX_USE_CXX11_ABI: ${{ matrix.GLIBCXX_USE_CXX11_ABI }}
 
     steps:
+      - name: Maximize build space
+        if: runner.os == 'Linux'
+        uses: easimon/maximize-build-space@master
+        with:
+          overprovision-lvm: 'true'
+          root-reserve-mb: 512
+          swap-size-mb: 1024
+          remove-dotnet: 'true'
+          remove-docker-images: 'true'
+          remove-codeql: 'true'
+          remove-haskell: 'true'
+          remove-android: 'true'
+      - name: df0
+        run: |
+          echo "df disk"
+          df -h
       - name: Checkout source code
         uses: actions/checkout@v4
 
@@ -46,6 +64,21 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.8
+      - name: Set up Mac Env
+        if: runner.os == 'macOS'
+        run: |
+          xcrun --show-sdk-version
+          xcode-select -p
+      - name: Set up Win Env
+        if: runner.os == 'Windows'
+        run: |
+          dir c:\
+# if [ ${{ matrix.os }} == 'macos-12' ]; then
+#   echo "Setting up Mac environment"
+#   sudo softwareupdate --install-rosetta
+#   ls `xcode-select -p`/Platforms/MacOSX.platform/Developer/SDKs
+#   brew install cmake ninja
+# fi
 
       - name: Install dependencies
         if: ${{ matrix.os == 'ubuntu-20.04' }}
@@ -53,12 +86,14 @@ jobs:
           echo "install_dependencies_ubuntu"
           3rdparty/webrtc/webrtc_build.sh install_dependencies_ubuntu
           
-
       - name: Download WebRTC sources
         run: |
           echo "download_webrtc_sources"
           3rdparty/webrtc/webrtc_build.sh download_webrtc_sources
-
+      - name: df1
+        run: |
+          echo "df disk"
+          df -h
       - name: Build WebRTC
         run: |
           echo "build_webrtc"
