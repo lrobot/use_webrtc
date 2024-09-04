@@ -6,7 +6,7 @@ if [ "x$1" == x ] ;then
 fi
 domain=$1
 
-git clone https://github.com/mariogasparoni/kurento-mcu-webrtc kurento-mcu-webrtc
+#git clone https://github.com/mariogasparoni/kurento-mcu-webrtc kurento-mcu-webrtc
 
 mkdir -p _keys
 ../../certbot.sh $domain
