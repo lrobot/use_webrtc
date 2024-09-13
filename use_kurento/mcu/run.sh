@@ -14,6 +14,7 @@ cat /etc/letsencrypt/live/$domain/fullchain.pem  > _keys/server.crt
 cat /etc/letsencrypt/live/$domain/privkey.pem  > _keys/server.key
 docker build -f Dockerfile .
 echo https://$domain:8443/
-docker run --network host -it --rm `docker build -q -f Dockerfile .`
+docker run --name kas --network host -it --rm `docker build -q -f Dockerfile .`
+
 
 

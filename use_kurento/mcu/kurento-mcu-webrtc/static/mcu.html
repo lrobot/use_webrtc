@@ -7,12 +7,18 @@
     <meta http-equiv="expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- <link rel="shortcut icon" href="img/kurento.png" type="image/png" /> -->
-    <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="css/mcu.css">
 
-    <title>Kurento Server</title>
+    <script src="bower_components/kurento-utils/js/kurento-utils.js"></script>
+
+    <script src="js/mcuclient.js"></script>
+    <title>Kurento MCU</title>
   </head>
   <body>
-          <a href="./mcu.html">MCU</a>
-          <a href="./sfu.html">SFU</a>
+
+    <header>
+    </header>
+          <video id="videoInput" class="local" autoplay width="160" height="120px" ></video>
+          <video id="videoOutput" class="remote" autoplay ></video>
   </body>
 </html>

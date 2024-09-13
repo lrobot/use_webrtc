@@ -19,6 +19,8 @@
     "tests"
   ],
   "dependencies": {
+    "socket.io-client": "2.0.3",
+    "adapter.js": "v0.2.9",
     "kurento-utils": "master"
   }
 }
