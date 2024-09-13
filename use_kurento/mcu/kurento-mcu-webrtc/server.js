@@ -93,7 +93,7 @@ wss.on('connection', function(ws, req) {
     };
 
     sessionHandler(request, response, function(err) {
-        sessionId = request.session.id;
+        sessionId = "sessionId";// request.session.id;
         console.log('Connection received with sessionId ' + sessionId);
         var websocketId = request.headers['sec-websocket-key'];
     });
@@ -114,7 +114,8 @@ wss.on('connection', function(ws, req) {
 
         switch (message.id) {
         case 'start':
-            sessionId = request.session.id;
+            //sessionId = request.session.id;
+            sessionId = "sessionId";
             websocketId = request.headers['sec-websocket-key'];
             start(sessionId, websocketId, ws, message.sdpOffer, function(error, sdpAnswer) {
                 if (error) {
@@ -141,7 +142,7 @@ wss.on('connection', function(ws, req) {
         default:
             ws.send(JSON.stringify({
                 id : 'error',
-                message : 'Invalid message ' + message
+                message : 'Invalid message ' + _message
             }));
             break;
         }
@@ -213,7 +214,7 @@ function start(sessionId, websocketId, ws, sdpOffer, callback) {
                     return callback(error);
                 }
 
-                if (candidatesQueue[sessionId][websocketId]) {
+                if (candidatesQueue[sessionId] && candidatesQueue[sessionId][websocketId]) {
                     while(candidatesQueue[sessionId][websocketId].length) {
                         var candidate = candidatesQueue[sessionId][websocketId].shift();
                         webRtcEndpoint.addIceCandidate(candidate);
@@ -386,7 +387,10 @@ function stop(sessionId, websocketId) {
             }
 
             delete sessions[sessionId][websocketId];
-            delete candidatesQueue[sessionId][websocketId];
+            if(candidatesQueue[sessionId]) {
+              delete candidatesQueue[sessionId][websocketId];
+            }
+            delete candidatesQueue[sessionId]
             if (mediaPipeline) {
               mediaPipeline.listeners--;
               if (mediaPipeline.listeners < 1) {
