@@ -24,6 +24,8 @@ var compositeHub = null;
 var mediaPipeline = null;
 
 
+const ENABLE_VIDEO = false;
+
 
 
 var wss = new ws.Server({
@@ -43,9 +45,9 @@ wss.on('connection', function(ws, req) {
     };
 
     expweb.sessionHandler(request, response, function(err) {
-        sessionId = "sessionId";// request.session.id;
+        sessionId = request.session.id; //"sessionId";// 
         console.log('Connection received with sessionId ' + sessionId);
-        var websocketId = request.headers['sec-websocket-key'];
+        // var websocketId = request.headers['sec-websocket-key'];
     });
 
     ws.on('error', function(error) {
@@ -60,15 +62,17 @@ wss.on('connection', function(ws, req) {
 
     ws.on('message', function(_message) {
         var message = JSON.parse(_message);
-        //console.log('Connection ' + sessionId + ' received message ', message);
+        console.log('Connection ' + sessionId + ' received message ', message);
 
         switch (message.id) {
         case 'start':
-            //sessionId = request.session.id;
-            sessionId = "sessionId";
+            sessionId = request.session.id;
+            // sessionId = "sessionId";
             websocketId = request.headers['sec-websocket-key'];
+            websocketId = "fixedWebsocketId";
             start(sessionId, websocketId, ws, message.sdpOffer, function(error, sdpAnswer) {
                 if (error) {
+                    console.log('Error in start:', error);
                     return ws.send(JSON.stringify({
                         id : 'error',
                         message : error
@@ -140,9 +144,36 @@ function getMediaPipeline(callback) {
   }
 }
 
+function restart(sessionId, websocketId, session, ws, sdpOffer, callback) {
+    console.log('Restarting user in MCU [ ' + sessionId + ', '  +  websocketId + ' ]');
+    var pipeline = session.pipeline;
+    var webRtcEndpoint = session.webRtcEndpoint;
+    var hubPort = session.hubPort;
+    webRtcEndpoint.processOffer(sdpOffer, function(error, sdpAnswer) {
+      if (error) {
+        return callback(error);
+      }
+      return callback(null, sdpAnswer);
+    });
+
+    webRtcEndpoint.gatherCandidates(function(error) {
+      if (error) {
+        return callback(error);
+      }
+    });
+}
+
 function start(sessionId, websocketId, ws, sdpOffer, callback) {
     if (!sessionId || !websocketId) {
         return callback('Cannot use undefined sessionId/websocketId');
+    }
+
+    if(sessions[sessionId] && sessions[sessionId][websocketId]) {
+      var existSession = sessions[sessionId][websocketId];
+      if (existSession && existSession.webRtcEndpoint) {
+          restart(sessionId, websocketId, existSession, ws, sdpOffer, callback);
+          return;
+      }
     }
 
     console.log('Adding user to MCU [ ' + sessionId + ', '  +  websocketId + ' ]');
@@ -256,7 +287,7 @@ function createMediaElements(pipeline, ws, callback) {
 
                     compositeHub = composite;
 
-                    if (!compositeHub.outputVideoPort) {
+                    if (ENABLE_VIDEO && !compositeHub.outputVideoPort) {
                       compositeHub.createHubPort(function(error, _outputVideoPort){
                         if (error){
                           return callback(error);
@@ -304,20 +335,20 @@ function connectMediaElements(webRtcEndpoint, hubPort, callback) {
             return callback(error);
         }
 
-        if (compositeHub && compositeHub.outputVideoPort) {
-          compositeHub.outputVideoPort.connect(webRtcEndpoint, 'VIDEO', function (error){
+        if (compositeHub) {
+          hubPort.connect(webRtcEndpoint, 'AUDIO', function (error){
             if (error) {
               return callback(error);
             }
-
-            hubPort.connect(webRtcEndpoint, 'AUDIO', function (error){
+            return callback(null);
+          });
+          if(ENABLE_VIDEO && compositeHub.outputVideoPort) {
+            compositeHub.outputVideoPort.connect(webRtcEndpoint, 'VIDEO', function (error){
               if (error) {
                 return callback(error);
               }
-
-              return callback(null);
             });
-          });
+          }  
         }
     });
 }

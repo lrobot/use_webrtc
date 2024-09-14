@@ -13,11 +13,62 @@
  *
  */
 
-var ws = new WebSocket('wss://' + location.host + '/kurentomcu');
+var webRtcPeer = null;
+var offerGenDone = false;
+var ws = connectWs()
+
+function connectWs() {
+	var wsUrl = 'wss://' + location.host + '/kurentomcu';
+	console.log('Connecting to wesocket:' + wsUrl);
+	var websocket = new WebSocket(wsUrl);
+	websocket.onclose = function() {
+		setTimeout(function() {
+      ws = connectWs();
+    }, 1000);
+	}
+	websocket.onopen = function() {
+		console.log('Wesocket connected');
+		if(webRtcPeer==null) {
+			setState(I_CAN_START);
+			start();
+		}
+	}
+	websocket.onerror = function(error) {
+		console.log('wesocket error:', error);
+	}
+
+	websocket.onmessage = function(message) {
+		var parsedMessage = JSON.parse(message.data);
+		// console.info('Received message: ' + message.data);
+	
+		switch (parsedMessage.id) {
+		case 'startResponse':
+			startResponse(parsedMessage);
+			break;
+		case 'error':
+			if (state == I_AM_STARTING) {
+				setState(I_CAN_START);
+			}
+			onError('Error message from server: ' + parsedMessage.message);
+			break;
+		case 'iceCandidate':
+			webRtcPeer.addIceCandidate(parsedMessage.candidate)
+			break;
+		default:
+			if (state == I_AM_STARTING) {
+				setState(I_CAN_START);
+			}
+			onError('Unrecognized message', parsedMessage);
+		}
+	}
+	
+	return websocket;
+}
 var videoInput;
 var videoOutput;
-var webRtcPeer;
+
 var state = null;
+const ENABLE_VIDEO = false;
 
 const I_CAN_START = 0;
 const I_CAN_STOP = 1;
@@ -28,38 +79,12 @@ window.onload = function() {
 	console.log('Page loaded ...');
 	videoInput = document.getElementById('videoInput');
 	videoOutput = document.getElementById('videoOutput');
-	setState(I_CAN_START);
-	start();
 }
 
 window.onbeforeunload = function() {
 	ws.close();
 }
 
-ws.onmessage = function(message) {
-	var parsedMessage = JSON.parse(message.data);
-	console.info('Received message: ' + message.data);
-
-	switch (parsedMessage.id) {
-	case 'startResponse':
-		startResponse(parsedMessage);
-		break;
-	case 'error':
-		if (state == I_AM_STARTING) {
-			setState(I_CAN_START);
-		}
-		onError('Error message from server: ' + parsedMessage.message);
-		break;
-	case 'iceCandidate':
-		webRtcPeer.addIceCandidate(parsedMessage.candidate)
-		break;
-	default:
-		if (state == I_AM_STARTING) {
-			setState(I_CAN_START);
-		}
-		onError('Unrecognized message', parsedMessage);
-	}
-}
 
 function start() {
 	console.log('Starting video call ...')
@@ -76,17 +101,36 @@ function start() {
       onicecandidate : onIceCandidate,
 			mediaConstraints: {
 				audio: true,
-				video: {
+				video: ENABLE_VIDEO?{
 					width: 320,
 					height: 240
-				}
+				}:false
 			}
     }
 
     webRtcPeer = kurentoUtils.WebRtcPeer.WebRtcPeerSendrecv(options, function(error) {
         if(error) return onError(error);
-        this.generateOffer(onOffer);
+        // this.generateOffer(onOffer);
     });
+	webRtcPeer.peerConnection.onnegotiationneeded = function() {
+		console.log('onnegotiationneeded');
+		// webRtcPeer.peerConnection.restartIce();
+		if(offerGenDone) {
+			// webRtcPeer.generateOffer(()=>{});
+		} else {
+			webRtcPeer.generateOffer(onOffer);
+			offerGenDone = true;
+		}
+
+	}
+	webRtcPeer.peerConnection.oniceconnectionstatechange = function(event) {
+		console.log('oniceconnectionstatechange:', event.target.iceConnectionState, event);
+		if(event.target.iceConnectionState == 'disconnected'|| event.target.iceConnectionState == 'failed') {
+			console.log('Restart ice');
+			webRtcPeer.peerConnection.restartIce();
+			// webRtcPeer.generateOffer(onOffer);
+		}
+	}
 }
 
 function onIceCandidate(candidate) {
