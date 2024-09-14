@@ -114,8 +114,10 @@ function start() {
     });
 	webRtcPeer.peerConnection.onnegotiationneeded = function() {
 		console.log('onnegotiationneeded');
-		// webRtcPeer.peerConnection.restartIce();
+
 		if(offerGenDone) {
+			// ice restart, renegotiation not supported by kuerneto: https://groups.google.com/g/kurento/c/bJ9-0weuv4E
+			// webRtcPeer.peerConnection.restartIce();
 			// webRtcPeer.generateOffer(()=>{});
 		} else {
 			webRtcPeer.generateOffer(onOffer);
