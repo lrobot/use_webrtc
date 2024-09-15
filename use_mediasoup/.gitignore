@@ -1,1 +1,4 @@
 mediasoup-demo/
+mediasoup/
+*.tar.bz2
+
