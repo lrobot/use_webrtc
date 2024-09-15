@@ -8,10 +8,16 @@ RUN \
 
 WORKDIR /service
 
+#direct build it out: if when your cpu&memory is enough
 #COPY package.json .
 #RUN npm install
+#RUN tar cjvf -C / /service.tar.bz2 /service
+
+
+#copy build out by service.tar.bz2
 COPY service.tar.bz2 /service.tar.bz2
 RUN tar xjvf /service.tar.bz2 --strip-components=1
+
 COPY server.js .
 COPY config.js .
 COPY lib lib

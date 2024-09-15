@@ -11,4 +11,4 @@ WORKDIR /service
 COPY package.json .
 RUN npm install
 WORKDIR /
-RUN tar cjvf /service.tar.bz2 /service
+RUN tar cjvf -C / /service.tar.bz2 /service

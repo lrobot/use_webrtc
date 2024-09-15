@@ -1,6 +1,6 @@
 
 
-# service.tar.bz2 is build from other machine
+# service.tar.bz2 is build from other super power machine
 
 ```
 by change runserver.sh 
