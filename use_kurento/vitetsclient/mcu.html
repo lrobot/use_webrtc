@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vite + TS</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <!-- <script type="module" src="/src/mcu.ts"></script> -->
+    <script type="module">
+      import {IntercomJoin, IntercomLeave,speechCtrlOn, speechCtrlOff } from '/src/mcu.ts';
+      window.IntercomJoin = IntercomJoin;
+      window.IntercomLeave = IntercomLeave;
+      window.speechCtrlOn = speechCtrlOn;
+      window.speechCtrlOff = speechCtrlOff;
+    </script>
+  
+    <a href="#" onclick="javascript:IntercomJoin('1718257216044145080')">群组1</a>
+    <a href="#" onclick="javascript:IntercomJoin('1718257229872329146')">群组2</a>
+    <a href="#" onclick="javascript:IntercomJoin('1717662926353461101')">zx</a>
+    <a href="#" onclick="javascript:IntercomLeave()">离开</a>
+    <br>
+    <br>
+    <a href="#" onclick="javascript:speechCtrlOn()">发言</a>
+    <a href="#" onclick="javascript:speechCtrlOff()">取消发言</a>
+    <audio id="audio" controls autoplay></audio>
+  </body>
+</html>
