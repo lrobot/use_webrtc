@@ -12,10 +12,9 @@ WORKDIR /app
 RUN pnpm install
 
 COPY webintercom /app
-RUN ls /app/_keys
 COPY _keys /app/_keys
 RUN ls /app/_keys
 
-CMD pnpm dev
+CMD pnpm 
 
 
