@@ -15,6 +15,7 @@ COPY webintercom /app
 COPY _keys /app/_keys
 RUN ls /app/_keys
 
-CMD pnpm 
+CMD pnpm vite dev --host
+
 
 
