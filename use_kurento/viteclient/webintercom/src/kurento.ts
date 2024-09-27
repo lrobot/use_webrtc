@@ -8,6 +8,8 @@ export class KurentoClient {
     webRtcPeer_: any;
     options_: any;
     fnOnIceCandidate_: any;
+    setAnswerDone = false;
+    iceCandidateCache: any[] = [];
     onError_(...args: any[]) {
         console.error(args);
     }
@@ -25,9 +27,13 @@ export class KurentoClient {
     AddIceCandidate(candidate:any) {
         console.log('Remote candidate add' + JSON.stringify(candidate));
         try {
-            this.webRtcPeer_.addIceCandidate(candidate);            
+            if(this.setAnswerDone) {
+                this.webRtcPeer_.addIceCandidate(candidate);            
+            } else {
+                this.iceCandidateCache.push(candidate);
+            }
         } catch (error) {
-            console.error
+            console.error(error);
         }
 
     }
@@ -67,6 +73,7 @@ export class KurentoClient {
                     // webRtcPeer.generateOffer(()=>{});
                 } else {
                     webRtcPeer.generateOffer((error:any, offerSdp:any) => {
+                        console.log('generateOffer', offerSdp);
                         if(error) {
                             this.onError(error);
                             reject(error);
@@ -97,11 +104,10 @@ export class KurentoClient {
                    try {
                     var audio_elem = document.getElementById("audio") as HTMLAudioElement;
                     if(audio_elem) {
-                        // var audio_elem = document.getElementById("audio");
-                        audio_elem.srcObject = event.streams[0];
-                        document.body.appendChild(audio_elem);
-                        audio_elem.controls = true;
-                        audio_elem.play();                    
+                        if(audio_elem.srcObject !== event.streams[0]) {
+                            audio_elem.srcObject = event.streams[0];
+                            console.log("ontrack: add remote audio stream");
+                        }
                     }
                    } catch (error) {
                     console.log("ontrack:err", error);
@@ -110,8 +116,14 @@ export class KurentoClient {
             this.webRtcPeer_ = webRtcPeer;
         });
     }
-    async setAnwer(sdpAnswer:any) {
-        this.webRtcPeer_.processAnswer(sdpAnswer);
+    async setAnswer(sdpAnswer:any) {
+        await this.webRtcPeer_.processAnswer(sdpAnswer);
+        let tempCache = this.iceCandidateCache;
+        this.setAnswerDone = true;
+        this.iceCandidateCache = [];
+        tempCache.forEach((candidate:any) => {
+            this.AddIceCandidate(candidate);
+        });
         return Promise.resolve();
     }
 

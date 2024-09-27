@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      freeice:
+        specifier: ^2.2.2
+        version: 2.2.2
       kurento-utils:
         specifier: ^7.1.0
         version: 7.1.0

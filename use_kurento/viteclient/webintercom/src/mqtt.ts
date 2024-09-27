@@ -83,6 +83,9 @@ class MqttClient {
         }
     }
     onResponse(resp: MeetingResp) {
+        if((resp as any).need_ack) {
+            this.sendAck(resp.req_id);
+        }
        const reqTrans = this.reqTransMap.get(resp.req_id);
        if(reqTrans) {
               reqTrans.resolve(resp);
@@ -119,6 +122,12 @@ class MqttClient {
             req_id,
             code,
             code_msg
+        }));
+    }
+    sendAck(req_id: string) {
+        this.clientPublish(TopicMeetingService, JSON.stringify({
+            type: "ack",
+            req_id
         }));
     }
     sendRespToUser(username:string, req_id: string, for_type:string, code: number, code_msg: string) {

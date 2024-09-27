@@ -1,10 +1,6 @@
 
 import { mqttClient } from "./mqtt";
 
-import * as kurentoUtils from "kurento-utils"; // import namespace "kurento-utils"
-
-export const kurentoUrl = 'ws://171.220.244.122:8888/kurento';
-// export const kurentoUrl = 'ws://vhbw.rbat.tk:8888/kurento';
 
 export const mqttUrl = 'wss://yjdd.lm-t.cn/mq/mqtt';
 // export const mqttUrl = 'mqtt://vhbw.rbat.tk';
@@ -41,7 +37,7 @@ window.onbeforeunload = ()=>{
 	console.log('Window closed ...');
 };
 
-var call: Call|null =  null; new Call("meeting_id");
+var call:Call|null = null;
 
 export function IntercomJoin(meeting_id:string) {
 	if(call) {

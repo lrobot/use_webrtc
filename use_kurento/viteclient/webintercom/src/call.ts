@@ -2,8 +2,9 @@
 
 
 import { mqttClient, MeetingReq } from "./mqtt";
-import { KurentoClient } from "./kurento";
+import { WrtcClient } from "./wrtc";
 import { makeid } from "./util";
+import { KurentoClient } from "./kurento";
 
 
 class AppSys {
@@ -16,19 +17,20 @@ class AppSys {
 export const appSys = new AppSys("0604005");
 
 export class Call {
-    kuernetoClient = new KurentoClient();
+    // wrtcClient = new WrtcClient();
+    wrtcClient = new KurentoClient();
     meeting_id: string;
     call_id = makeid();
     constructor(meeting_id:string) {
         this.meeting_id = meeting_id;
-        this.kuernetoClient.setFnOnIceCandidate(this.onLocalIceCandidate.bind(this));
+        this.wrtcClient.setFnOnIceCandidate(this.onLocalIceCandidate.bind(this));
         mqttClient.setMeetingReqFn(meeting_id, this.onMeetingReq.bind(this));
     }
     release() {
         mqttClient.removeMeetingReqFn(this.meeting_id);
     }
     async callJoin() {
-        const sdpOffer = await this.kuernetoClient.createOffer();
+        const offerSdp = await this.wrtcClient.createOffer();
         console.log("call_join");
         const response = await mqttClient.sendReq({
             req_id: makeid(),
@@ -37,19 +39,19 @@ export class Call {
             call_id: this.call_id,
             user_id: appSys.user_id,
             meeting_type: "intercom",
-            sdp_offer: sdpOffer
+            sdp_offer: offerSdp
         } as any);
         if(response&&response.code==200) {
             console.log("call_join success");
-            await this.kuernetoClient.setAnwer(response.sdp_answer);
-            await this.kuernetoClient.micCtrl(false);
+            await this.wrtcClient.setAnswer(response.sdp_answer);
+            await this.wrtcClient.micCtrl(false);
         }
     }
 
     onMeetingReq(req: MeetingReq) {
         switch(req.type) {
             case "call_ice":
-                this.kuernetoClient.AddIceCandidate((req as any).ice);
+                this.wrtcClient.AddIceCandidate((req as any).ice);
                 break;
             case "intercom_status":
                 console.log("intercom_status", req);
@@ -71,7 +73,7 @@ export class Call {
         } as any);
         if(response&&response.code==200) {
             console.log("speech_ctrl success");
-            this.kuernetoClient.micCtrl(speech_on);
+            this.wrtcClient.micCtrl(speech_on);
         } else {
             console.log("speech_ctrl failed");
         }
@@ -90,9 +92,14 @@ export class Call {
     }
 
     onLocalIceCandidate(candidate:any) {
-        const candidateJson = JSON.parse(JSON.stringify(candidate));
-        candidateJson.sdp = candidateJson.candidate;
         console.log("local candidate", candidate);
+        const candidateJson = JSON.parse(JSON.stringify(candidate));
+        if(!candidateJson) {
+            console.error("candidateJson is null");
+            return;
+        }
+        candidateJson.sdp = candidateJson.candidate;
+        console.log("local candidateJson", candidateJson);
         mqttClient.sendReq({
             req_id: makeid(),
             type: "call_ice",
