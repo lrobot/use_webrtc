@@ -2,6 +2,7 @@
 
 
 import mqtt from "mqtt"; // import namespace "mqtt"
+import { makeid } from "./util";
 export const mqttUrl = 'wss://yjdd.lm-t.cn/mq/mqtt';
 
 const TopicMeetingService = "meeting/service";
@@ -31,7 +32,7 @@ interface MeetingResp {
     code_msg : string;
 }
 
-class MqttClient {
+export class MqttClient {
     client: mqtt.MqttClient;
     username : string;
     userTopic : string;
@@ -161,4 +162,4 @@ class MqttClient {
 }
 
 
-export const mqttClient = new MqttClient("0604005");
+

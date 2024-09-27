@@ -46,8 +46,8 @@ export class KurentoClient {
     constructor(videoInput:HTMLVideoElement|null=null, videoOutput:HTMLVideoElement|null=null) {
         console.log('KurentoClient created');
         this.options_ = {
-            localVideo: videoInput,
-            remoteVideo: videoOutput,
+            // localVideo: videoInput,
+            // remoteVideo: videoOutput,
             onicecandidate : this.onIceCandidate.bind(this),
                   mediaConstraints: {
                       audio: true,

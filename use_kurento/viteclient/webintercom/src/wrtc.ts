@@ -43,7 +43,7 @@ export class WrtcClient {
     }
 
 
-    constructor(videoInput:HTMLVideoElement|null=null, videoOutput:HTMLVideoElement|null=null) {
+    constructor() {
         console.log('wrtc created');
         this.webrtcPc = new RTCPeerConnection({
             iceServers:  [
@@ -116,7 +116,14 @@ export class WrtcClient {
             }
 
             try {
-                const localStream = await navigator.mediaDevices.getUserMedia({audio: true, video: false})
+                const localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    },
+                    video: false
+                })
                 localStream.getTracks().forEach((track:any) => {
                     pc.addTrack(track, localStream);
                 });

@@ -64,6 +64,3 @@ export function speechCtrlOff() {
 		call.speechCtrl(false, false);
 	}
 }
-// (async ()=>{
-// 	appSys.user_id = "0604005";
-// })();

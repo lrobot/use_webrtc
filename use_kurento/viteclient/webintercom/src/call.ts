@@ -1,24 +1,19 @@
 
 
 
-import { mqttClient, MeetingReq } from "./mqtt";
+import { MeetingReq } from "./mqtt";
+import { mqttClient } from "./sys";
+import { appSys } from "./sys";
 import { WrtcClient } from "./wrtc";
 import { makeid } from "./util";
 import { KurentoClient } from "./kurento";
 
 
-class AppSys {
-    user_id : string;
-    constructor(user_id:string) {
-        this.user_id = user_id;
-    }
-}
 
-export const appSys = new AppSys("0604005");
 
 export class Call {
-    // wrtcClient = new WrtcClient();
-    wrtcClient = new KurentoClient();
+    wrtcClient = new WrtcClient();
+    // wrtcClient = new KurentoClient();
     meeting_id: string;
     call_id = makeid();
     constructor(meeting_id:string) {

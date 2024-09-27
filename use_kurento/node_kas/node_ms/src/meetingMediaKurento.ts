@@ -68,7 +68,7 @@ export class MediaMemberKurento implements meetingMediaApi.MediaMember {
     return this.sdp_answer;
   }
   public async connect() {
-    await this.webrtcEndpoint.connect(this.hubPort);
+    await this.webrtcEndpoint.connect(this.hubPort, 'AUDIO');
     await this.hubPort.connect(this.webrtcEndpoint, 'AUDIO');
     if(this.mediaGroup.videoOutputHubPort !== null) {
       this.mediaGroup.videoOutputHubPort.connect(this.webrtcEndpoint, 'VIDEO');
