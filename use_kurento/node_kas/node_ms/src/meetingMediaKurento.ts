@@ -6,6 +6,9 @@ import QKurento from './qkurento';
 import * as constdomain from './constdomain';
 
 
+
+const enableVideo = false;
+
 export class MediaMemberKurento implements meetingMediaApi.MediaMember {
   constructor(mediaGroup:MediaGroupKurento, webrtcEndpoint: kurento.WebRtcEndpoint, hubPort: kurento.HubPort) {
     this.mediaGroup = mediaGroup;
@@ -97,7 +100,7 @@ export class MediaGroupKurento implements meetingMediaApi.MediaGroup {
     return this.mediaCenterKurento;
   }
   async createMember(): Promise<meetingMediaApi.MediaMember> {
-    if(this.videoOutputHubPort === null) {
+    if(enableVideo && this.videoOutputHubPort === null) {
       this.videoOutputHubPort = await this.composite.createHubPort();
     }
     const mediaMember = new MediaMemberKurento(this,

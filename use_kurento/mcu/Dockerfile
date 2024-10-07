@@ -18,4 +18,5 @@ COPY _keys /app/keys
 RUN ls /app/keys
 
 CMD node server.js  --as_uri https://localhost:8443/ --ws_uri ws://localhost:8888/kurento 
+CMD node server.js  --as_uri https://localhost:8443/ --ws_uri ws://kumakurento:8888/kurento 
 
