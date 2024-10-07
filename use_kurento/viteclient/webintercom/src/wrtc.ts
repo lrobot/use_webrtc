@@ -50,7 +50,9 @@ export class WrtcClient {
             // { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:171.220.244.122:3478' },
             { urls: 'turn:171.220.244.122:3478', username: 'kurento',credential: 'kurento'}
-            ].concat(freeice()),
+            ]
+            // .concat(freeice())
+            ,
             iceTransportPolicy: 'all',
         });
     }

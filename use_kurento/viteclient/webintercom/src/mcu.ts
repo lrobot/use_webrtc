@@ -1,8 +1,6 @@
 
-import { mqttClient } from "./mqtt";
 
-
-export const mqttUrl = 'wss://yjdd.lm-t.cn/mq/mqtt';
+// export const mqttUrl = 'wss://yjdd.lm-t.cn/mq/mqtt';
 // export const mqttUrl = 'mqtt://vhbw.rbat.tk';
 
 
@@ -10,7 +8,7 @@ export const mqttUrl = 'wss://yjdd.lm-t.cn/mq/mqtt';
 // let client = mqtt.connect("mqtt://test.mosquitto.org"); // create a client
 
 
-import { appSys, Call }	from "./call";
+import { Call }	from "./call";
 
 var videoInput: HTMLElement|null;
 var videoOutput: HTMLElement|null;

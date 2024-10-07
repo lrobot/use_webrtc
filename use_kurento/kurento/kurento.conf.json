@@ -25,13 +25,13 @@
         "//": "WebSocket port where API clients connect to control KMS",
         "//": "Set to 0 or comment out the line to disable WebSocket access",
         "port": 8888,
-        "secure": {
+        "//secure": {
           "//": "Secure WebSocket port where API clients connect to control KMS",
           "//": "Set to 0 or comment out the line to disable Secure WebSocket access",
           "port": 6443,
           "//": "Path (absolute or relative to this config file) to the",
           "//": "concatenated certificate (chain) file(s) + private key, in PEM format",
-          "certificate": "_cert_key.pem",
+          "//certificate": "_cert_key.pem",
           "//": "Password for the private key, if one was set when the key was created",
           "//password": ""
         },
