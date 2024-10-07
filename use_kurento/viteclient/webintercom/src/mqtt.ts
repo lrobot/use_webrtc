@@ -4,7 +4,7 @@
 import mqtt from "mqtt"; // import namespace "mqtt"
 import { makeid } from "./util";
 //export const mqttUrl = 'wss://yjdd.lm-t.cn/mq/mqtt';
-export const mqttUrl = 'mqtt://vhbw.rbat.tk';
+export const mqttUrl = 'wss://vhbw.rbat.tk:8081';
 
 const TopicMeetingService = "meeting/service";
 

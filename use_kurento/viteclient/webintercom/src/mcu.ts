@@ -1,7 +1,5 @@
 
 
-// export const mqttUrl = 'wss://yjdd.lm-t.cn/mq/mqtt';
-// export const mqttUrl = 'mqtt://vhbw.rbat.tk';
 
 
 
