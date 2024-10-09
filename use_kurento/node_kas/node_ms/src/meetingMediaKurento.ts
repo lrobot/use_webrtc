@@ -23,7 +23,6 @@ export class MediaMemberKurento implements meetingMediaApi.MediaMember {
     });
   }
   async addIceCandidate(candidate: any) {
-      
       var candidateInfo = null;
       try {
         console.log('getComplexType', candidate);

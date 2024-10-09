@@ -5,7 +5,7 @@ export interface MediaMember {
   getMediaCenter(): MediaCenter;
   release(): void;
   setIceCandidateCallback(callback: (candidate: string) => void): void;
-  addIceCandidate(candidate: any): void;
+  addIceCandidate(candidate: any): Promise<void>;
   processOffer(sdp_offer: string): Promise<string>;
 }
 

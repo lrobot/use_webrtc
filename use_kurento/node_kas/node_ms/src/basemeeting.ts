@@ -77,7 +77,7 @@ export class MeetingMember {
   async handleIce(meetingMesssage: constdomain.intercom_ice) {
     await this.meetingBean.meetingService.sendRespMsg(meetingMesssage, 200, 'ok');
     meetingMesssage.ice.candidate = meetingMesssage.ice.sdp;
-    this.addIceCandidate(meetingMesssage.ice);
+    await this.addIceCandidate(meetingMesssage.ice);
   }
 
   public release() {
@@ -101,7 +101,7 @@ export class MeetingMember {
   }
 
   public async addIceCandidate(iceCandidate: any) {
-     this.mediaMember.addIceCandidate(iceCandidate);
+     await this.mediaMember.addIceCandidate(iceCandidate);
   }
 }
 
