@@ -52,6 +52,7 @@ export class MediaMemberKurento implements meetingMediaApi.MediaMember {
   mediaGroup: MediaGroupKurento
   webrtcEndpoint: kurento.WebRtcEndpoint
   hubPort: kurento.HubPort
+  releaseDone = false;
   getMediaCenter(): meetingMediaApi.MediaCenter {
     return this.mediaGroup.mediaCenterKurento;
   }
@@ -59,6 +60,10 @@ export class MediaMemberKurento implements meetingMediaApi.MediaMember {
     return this.mediaGroup;
   }
   release(): void {
+    if(this.releaseDone) {
+      return;
+    }
+    this.releaseDone = true;
     this.webrtcEndpoint.release();
     this.hubPort.release();
   }
@@ -86,6 +91,7 @@ export class MediaGroupKurento implements meetingMediaApi.MediaGroup {
   pipeline: kurento.MediaPipeline
   composite: kurento.Composite
   videoOutputHubPort: kurento.HubPort|null = null;
+  releaseDone = false;
 
   constructor(mediaCenterKurento: MediaCenterKurento, pipeline: kurento.MediaPipeline, composite: kurento.Composite) {
     this.mediaCenterKurento = mediaCenterKurento;
@@ -93,6 +99,10 @@ export class MediaGroupKurento implements meetingMediaApi.MediaGroup {
     this.pipeline = pipeline;
   }
   release(): void {
+    if(this.releaseDone) {
+      return;
+    }
+    this.releaseDone = true;
     this.pipeline.release();
     this.composite.release();
   }
