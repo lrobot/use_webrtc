@@ -12,7 +12,10 @@ WORKDIR /app
 RUN pnpm install
 
 COPY node_ms /app
+RUN pnpm build
+#CMD pnpm dev
+CMD pnpm start
 
-CMD pnpm dev
+
 
 
