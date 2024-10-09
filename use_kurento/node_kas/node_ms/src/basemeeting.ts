@@ -80,8 +80,8 @@ export class MeetingMember {
     this.addIceCandidate(meetingMesssage.ice);
   }
 
-  public async release() {
-    await this.mediaMember.release();
+  public release() {
+    this.mediaMember.release();
   }
 
   public async sendJoinReply(msg:any, code: number, codeMsg: string, sdp_answer:string, useTranscation:boolean = true) {
@@ -142,11 +142,12 @@ export class MeetingGroup {
       await this.handleMessage(meetingMesssage);
     });
   }
-  async doMemberRemove(userId: string) {
+  doMemberRemove(userId: string) {
     this.members.delete(userId);
     if(this.members.size === 0) {
-      this.release();
+      console.log('meeting remove', this.meetingId, "when member is 0", userId);
       this.meetingService.onGroupRemoved(this.meetingType, this.meetingId);
+      this.release();
     }
   }
 
