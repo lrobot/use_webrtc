@@ -35,7 +35,7 @@ export class MeetingMember {
 
   public async onMessage(meetingMesssage:any) {
     this.queue.enqueue(async () => {
-      this.handleMessage(meetingMesssage);
+      await this.handleMessage(meetingMesssage);
     });
   }
 
@@ -52,7 +52,7 @@ export class MeetingMember {
         break;
       case constdomain.kIntercomQuery:
       case constdomain.kIntercomSpeechCtrl:
-        this.meetingBean.handleExtMessage(meetingMesssage);
+        await this.meetingBean.handleExtMessage(meetingMesssage);
         break;
       default:
         console.log('unknown message type', meetingMesssage.type);

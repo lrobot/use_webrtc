@@ -3,8 +3,8 @@
 
 import mqtt from "mqtt"; // import namespace "mqtt"
 import { makeid } from "./util";
-//export const mqttUrl = 'wss://yjdd.lm-t.cn/mq/mqtt';
-export const mqttUrl = 'wss://vhbw.rbat.tk:8081';
+export const mqttUrl = 'wss://yjdd.lm-t.cn/mq/mqtt';
+// export const mqttUrl = 'wss://srv.rbat.tk:8081';
 
 const TopicMeetingService = "meeting/service";
 
@@ -42,18 +42,26 @@ export class MqttClient {
     constructor(username:string) {
         this.username = username;
         this.userTopic = "user/"+username;
+        console.log("mqttUrl", mqttUrl);
         this.client = mqtt.connect(mqttUrl); // create a client
         this.client.on("message", (topic, message) => {
             console.log("mqtt_in_ ",topic, message.toString());
             this.onMessage(topic,message.toString())
         });
         this.client.on("connect", () => {
+            console.log("mqtt_connect ok", mqttUrl);
             this.client.subscribe(this.userTopic, (err) => {
               if (!err) {
                 this.clientPublish(this.userTopic, JSON.stringify({ message: "Hello from mqtt" }));
               }
             });
           })
+        this.client.on("error", (err) => {
+            console.log("mqtt_error", mqttUrl, err);
+        });
+        this.client.on("disconnect", () => {
+            console.log("mqtt_disconnect", mqttUrl);
+        });
     }
     clientPublish(topic:string, message:string) {
         console.log("mqtt_out_", topic, message);
