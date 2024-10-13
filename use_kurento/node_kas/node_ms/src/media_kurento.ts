@@ -1,7 +1,7 @@
 
 
 import kurento from 'kurento-client';
-import * as meetingMediaApi from './meetingMediaApi';
+import * as meetingMediaApi from './mediaapi';
 import QKurento from './qkurento';
 import * as constdomain from './constdomain';
 
@@ -9,8 +9,9 @@ import * as constdomain from './constdomain';
 
 const enableVideo = false;
 
-export class MediaMemberKurento implements meetingMediaApi.MediaMember {
-  constructor(mediaGroup:MediaGroupKurento, webrtcEndpoint: kurento.WebRtcEndpoint, hubPort: kurento.HubPort) {
+export class MediaEndpointKurento implements meetingMediaApi.MediaEndpoint {
+  userData: {[key: string]: string} = {};
+  constructor(mediaGroup:MediaGroupKurento, webrtcEndpoint: kurento.WebRtcEndpoint, hubPort: kurento.HubPort|null) {
     this.mediaGroup = mediaGroup;
     this.webrtcEndpoint = webrtcEndpoint;
     this.hubPort = hubPort;
@@ -21,6 +22,12 @@ export class MediaMemberKurento implements meetingMediaApi.MediaMember {
         this.iceCandidateCallback(candidate);
       }
     });
+  }
+  setUserData(key: string, value: string) {
+    this.userData[key] = value;
+  }
+  getUserData(key: string): string {
+    return this.userData[key];
   }
   async addIceCandidate(candidate: any):Promise<void> {
       var candidateInfo = null;
@@ -45,12 +52,16 @@ export class MediaMemberKurento implements meetingMediaApi.MediaMember {
   setIceCandidateCallback(callback: (candidate: string) => void): void {
     this.iceCandidateCallback = callback;
   }
+  setIceStateCallback(callback: (state: string) => void): void {
+    this.iceStateCallback = callback;
+  }
+  iceStateCallback: ((state: string) => void )|null= null
   iceCandidateCallback: ((candidate: string) => void )|null= null;
   sdp_answer: string|null = null;
   _iceCache: any[] = [];
   mediaGroup: MediaGroupKurento
   webrtcEndpoint: kurento.WebRtcEndpoint
-  hubPort: kurento.HubPort
+  hubPort: kurento.HubPort|null
   releaseDone = false;
   getMediaCenter(): meetingMediaApi.MediaCenter {
     return this.mediaGroup.mediaCenterKurento;
@@ -64,7 +75,9 @@ export class MediaMemberKurento implements meetingMediaApi.MediaMember {
     }
     this.releaseDone = true;
     this.webrtcEndpoint.release();
-    this.hubPort.release();
+    if(this.hubPort !== null){
+      this.hubPort.release();
+    }
   }
   async processOffer(sdp_offer: string):Promise<string> {
     this.sdp_answer = await this.webrtcEndpoint.processOffer(sdp_offer);
@@ -74,25 +87,43 @@ export class MediaMemberKurento implements meetingMediaApi.MediaMember {
     });
     return this.sdp_answer;
   }
-  public async connect() {
-    await this.webrtcEndpoint.connect(this.hubPort, 'AUDIO');
-    await this.hubPort.connect(this.webrtcEndpoint, 'AUDIO');
+  hasSdpAnswer(): boolean {
+    return this.sdp_answer !== null;
+  }
+  getSdpAnswer(): string {
+    if(this.sdp_answer === null) {
+      throw new Error('sdp_answer is null');
+    }
+    return this.sdp_answer;
+  }
+  async _connectHubport() {
+    if(this.hubPort) {
+      await this.webrtcEndpoint.connect(this.hubPort, 'AUDIO');
+      await this.hubPort.connect(this.webrtcEndpoint, 'AUDIO');
+    }
     if(this.mediaGroup.videoOutputHubPort !== null) {
       this.mediaGroup.videoOutputHubPort.connect(this.webrtcEndpoint, 'VIDEO');
     }
     var maxbps = Math.floor( 320 * 1024);
     // (this.webrtcEndpoint as any).getMaxEncoderBitrate(maxbps);
   }
+  async connectSendTo(endpoint: meetingMediaApi.MediaEndpoint, mediaType:string): Promise<void> {
+    if(endpoint instanceof MediaEndpointKurento) {
+      await this.webrtcEndpoint.connect(endpoint.webrtcEndpoint, mediaType as kurento.MediaType);
+    } else {
+      throw new Error('not supported');
+    }
+  }
 }
 
 export class MediaGroupKurento implements meetingMediaApi.MediaGroup {
   mediaCenterKurento: MediaCenterKurento
   pipeline: kurento.MediaPipeline
-  composite: kurento.Composite
+  composite: kurento.Composite|null = null;
   videoOutputHubPort: kurento.HubPort|null = null;
   releaseDone = false;
 
-  constructor(mediaCenterKurento: MediaCenterKurento, pipeline: kurento.MediaPipeline, composite: kurento.Composite) {
+  constructor(mediaCenterKurento: MediaCenterKurento, pipeline: kurento.MediaPipeline, composite: kurento.Composite|null) {
     this.mediaCenterKurento = mediaCenterKurento;
     this.composite = composite;
     this.pipeline = pipeline;
@@ -103,20 +134,26 @@ export class MediaGroupKurento implements meetingMediaApi.MediaGroup {
     }
     this.releaseDone = true;
     this.pipeline.release();
-    this.composite.release();
+    if(this.composite !== null){
+      this.composite.release();
+    }
   }
   getMediaCenter(): meetingMediaApi.MediaCenter {
     return this.mediaCenterKurento;
   }
-  async createMember(): Promise<meetingMediaApi.MediaMember> {
-    if(enableVideo && this.videoOutputHubPort === null) {
-      this.videoOutputHubPort = await this.composite.createHubPort();
+  async createEndpoint(): Promise<meetingMediaApi.MediaEndpoint> {
+    if(this.composite) {
+      if(enableVideo && this.videoOutputHubPort === null) {
+        this.videoOutputHubPort = await this.composite.createHubPort();
+      }
+      const mediaEndpoint = new MediaEndpointKurento(this, await this.pipeline.create('WebRtcEndpoint'), await this.composite.createHubPort());
+      await mediaEndpoint._connectHubport();
+      return mediaEndpoint;
+    } else {
+      const mediaEndpoint = new MediaEndpointKurento(this, await this.pipeline.create('WebRtcEndpoint'), null);
+      await mediaEndpoint._connectHubport();
+      return mediaEndpoint;
     }
-    const mediaMember = new MediaMemberKurento(this,
-      await this.pipeline.create('WebRtcEndpoint'),
-      await this.composite.createHubPort());
-    await mediaMember.connect();
-    return mediaMember;
   }
   async releaseMember() {
     if(this.videoOutputHubPort !== null) {
@@ -130,9 +167,10 @@ export class MediaCenterKurento implements meetingMediaApi.MediaCenter {
   constructor(kurentoUrl: string) {
     this.kurent = new QKurento(kurentoUrl);
   }
-  async createGroup(): Promise<meetingMediaApi.MediaGroup> {
+  async createGroup(useCompose:boolean): Promise<meetingMediaApi.MediaGroup> {
     const pipeLine = await this.kurent.createMediaPipeline();
-    return Promise.resolve(new MediaGroupKurento(this, pipeLine , await this.kurent.createComposite(pipeLine)));
+    const composite = useCompose ? await this.kurent.createComposite(pipeLine) : null;
+    return new MediaGroupKurento(this, pipeLine , composite)
   }
 }
 
