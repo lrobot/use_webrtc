@@ -26,21 +26,21 @@ class CallService implements CallServiceApi {
     public async sendRespMsg(msg:any, code: number, codeMsg: string, useTranscation:boolean = false) {
       let response_msg = {
         type: constdomain.kMsgResponse,
-        for_type: msg.type,
+        forType: msg.type,
         code: code,
-        code_msg: codeMsg,
-        req_id: msg.req_id,
-        need_ack: false,
+        codeMsg: codeMsg,
+        reqId: msg.reqId,
+        needAck: false,
       } as constdomain.respone_base;
       if(useTranscation) {
-        await this.msgTrans.sendResponeNeedAck(msg.user_id, response_msg);
+        await this.msgTrans.sendResponeNeedAck(msg.userId, response_msg);
       } else {
-        await this.msgTrans.sendRespone(msg.user_id, response_msg);
+        await this.msgTrans.sendRespone(msg.userId, response_msg);
       }
     }
     async start() {
       this.mqtt.on(constdomain.kMqttTopicMeetingService, (message) => {
-        console.log('m_ in_:',  message);
+        console.log('m_ in_:', (new Date()).toISOString(), message);
         this.onMessage(message);
       });
       console.log(await this.mqtt.subscribeAsync(constdomain.kMqttTopicMeetingService));
@@ -77,14 +77,14 @@ class CallService implements CallServiceApi {
     }
     public async handleMessage(meetingMessage:any) {
       let meeting = null;
-      let meetingId_ = `${meetingMessage.meeting_type}_${meetingMessage.meeting_id}`;
-      if(meetingMessage.meeting_id) {
+      let meetingId_ = `${meetingMessage.meetingType}_${meetingMessage.meetingId}`;
+      if(meetingMessage.meetingId) {
         meeting = this.callGroups.get(meetingId_);
       }
       switch (meetingMessage.type) {
         case constdomain.kCallInvite:
           await this.sendRespMsg(meetingMessage, 200, 'ok');
-          if(meetingMessage.grp_id) {
+          if(meetingMessage.grpId) {
             //todo invite by query member in group
             console.log('todo invite by query member in group');
           }
@@ -100,14 +100,14 @@ class CallService implements CallServiceApi {
           break;
         case constdomain.kCallJoin:
           if (!meeting) {
-            if(!meetingMessage.meeting_id) return;
-            if(meetingMessage.meeting_type === constdomain.kCallTypeIntercom) {
-              meeting = new IntercomGroup(this,meetingMessage.meeting_type, meetingMessage.meeting_id, await this.mediaCenter.createGroup(true));
+            if(!meetingMessage.meetingId) return;
+            if(meetingMessage.meetingType === constdomain.kCallTypeIntercom) {
+              meeting = new IntercomGroup(this,meetingMessage.meetingType, meetingMessage.meetingId, await this.mediaCenter.createGroup(true));
               this.callGroups.set(meetingId_, meeting);
             }
-            if(meetingMessage.meeting_type === constdomain.kCallTypeMeeting) {
+            if(meetingMessage.meetingType === constdomain.kCallTypeMeeting) {
               if(meetingMessage.create) {
-                meeting = new MeetingGroup(this,meetingMessage.meeting_type, meetingMessage.meeting_id, await this.mediaCenter.createGroup(true), await this.mediaCenter.createGroup(false));
+                meeting = new MeetingGroup(this,meetingMessage.meetingType, meetingMessage.meetingId, await this.mediaCenter.createGroup(true), await this.mediaCenter.createGroup(false));
                 this.callGroups.set(meetingId_, meeting);
               }
             }
@@ -120,7 +120,7 @@ class CallService implements CallServiceApi {
           break;
         case constdomain.kMsgAck:
         case constdomain.kMsgResponse:
-          await this.msgTrans.transDone(meetingMessage.req_id);
+          await this.msgTrans.transDone(meetingMessage.reqId);
           break;
         default:
           if(meeting) {

@@ -38,7 +38,7 @@ export class MediaEndpointKurento implements meetingMediaApi.MediaEndpoint {
         console.error("Error parsing candidate", candidate, e);
         return;
       }
-      if(this.sdp_answer === null) {
+      if(this.sdpAnswer === null) {
         this._iceCache.push(candidateInfo);
       } else {
         try {
@@ -57,7 +57,7 @@ export class MediaEndpointKurento implements meetingMediaApi.MediaEndpoint {
   }
   iceStateCallback: ((state: string) => void )|null= null
   iceCandidateCallback: ((candidate: string) => void )|null= null;
-  sdp_answer: string|null = null;
+  sdpAnswer: string|null = null;
   _iceCache: any[] = [];
   mediaGroup: MediaGroupKurento
   webrtcEndpoint: kurento.WebRtcEndpoint
@@ -79,22 +79,22 @@ export class MediaEndpointKurento implements meetingMediaApi.MediaEndpoint {
       this.hubPort.release();
     }
   }
-  async processOffer(sdp_offer: string):Promise<string> {
-    this.sdp_answer = await this.webrtcEndpoint.processOffer(sdp_offer);
+  async processOffer(sdpOffer: string):Promise<string> {
+    this.sdpAnswer = await this.webrtcEndpoint.processOffer(sdpOffer);
     await this.webrtcEndpoint.gatherCandidates();
     this._iceCache.forEach(async (candidateInfo) => {
       await this.webrtcEndpoint.addIceCandidate(candidateInfo);
     });
-    return this.sdp_answer;
+    return this.sdpAnswer;
   }
   hasSdpAnswer(): boolean {
-    return this.sdp_answer !== null;
+    return this.sdpAnswer !== null;
   }
   getSdpAnswer(): string {
-    if(this.sdp_answer === null) {
-      throw new Error('sdp_answer is null');
+    if(this.sdpAnswer === null) {
+      throw new Error('sdpAnswer is null');
     }
-    return this.sdp_answer;
+    return this.sdpAnswer;
   }
   async _connectHubport() {
     if(this.hubPort) {

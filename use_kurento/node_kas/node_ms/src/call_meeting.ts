@@ -37,48 +37,48 @@ export class MeetingMemeber extends CallMember {
     public async handleMessage(meetingMessage:any) {
       switch (meetingMessage.type) {
         case constdomain.kMsgMediaPushVideo:
-          this.handleMediaPushMedia(meetingMessage);
+          await this.handleMediaPushMedia(meetingMessage);
           break;
         case constdomain.kMsgMediaPullVideo:
-          this.handleMediaPullMedia(meetingMessage);
+          await this.handleMediaPullMedia(meetingMessage);
           break;
         case constdomain.kMsgMediaVideoIce:
-          this.handleMediaVideoIce(meetingMessage);
+          await this.handleMediaVideoIce(meetingMessage);
           break;
         default:
-          this._handleMessage(meetingMessage);
+          await this._handleMessage(meetingMessage);
       }
     }
-    public async sendMediaReply(msg:any, code: number, codeMsg: string, sdp_answer:string, useTranscation:boolean = true) {
+    public async sendMediaReply(msg:any, code: number, codeMsg: string, sdpAnswer:string, useTranscation:boolean = true) {
       let join_ok = {
         type: constdomain.kMsgResponse,
-        for_type: msg.type,
+        forType: msg.type,
         code: code,
-        code_msg: codeMsg,
-        req_id: msg.req_id,
-        peer_id: msg.type==constdomain.kMsgMediaPushVideo?undefined:msg.peer_id,
-        sdp_answer: sdp_answer,
-      } as constdomain.call_pull_media_response;
+        codeMsg: codeMsg,
+        reqId: msg.reqId,
+        peerId: msg.type==constdomain.kMsgMediaPushVideo?undefined:msg.peerId,
+        sdpAnswer: sdpAnswer,
+      } as constdomain.call_pull_video_response;
       if(useTranscation) {
-        await this.callGroup.callServiceApi.sendResponeNeedAck(msg.user_id, join_ok);
+        await this.callGroup.callServiceApi.sendResponeNeedAck(msg.userId, join_ok);
       } else {
-        await this.callGroup.callServiceApi.sendRespone(msg.user_id, join_ok);
+        await this.callGroup.callServiceApi.sendRespone(msg.userId, join_ok);
       }
     }
     public async createVideoEndpointForUserId(userId: string) {
-      const endpoint = this.callGroup.mediaGroup.createEndpoint();
-      this.defaultMediaEndpoint.setIceCandidateCallback(async (candidate:any) => {
+      const endpoint = await this.callGroup.mediaGroup.createEndpoint();
+      endpoint.setIceCandidateCallback(async (candidate:any) => {
         let iceCandidate = {
           type: constdomain.kMsgMediaVideoIce,
-          req_id: constutil.makeid(),
-          meeting_id: this.callGroup.meetingId,
-          peer_id : userId,
-          call_id: this.callId,
+          reqId: constutil.makeid(),
+          meetingId: this.callGroup.meetingId,
+          peerId : userId,
+          callId: this.callId,
           ice: candidate
-        } as constdomain.call_pull_ice;
+        } as constdomain.request_call_video_ice;
         await this.callGroup.callServiceApi.sendReqNeedResp(this.userId, iceCandidate); // send ice candidate to other members
       });
-      this.defaultMediaEndpoint.setIceStateCallback(async (state:string) => {
+      endpoint.setIceStateCallback(async (state:string) => {
         console.log('pull IceComponentStateChange',userId, state);
         // switch (state) {
         //   case 'DISCONNECTED':
@@ -109,12 +109,12 @@ export class MeetingMemeber extends CallMember {
       });
       return endpoint;
     }
-    public async handleMediaPushMedia(meetingMessage: constdomain.call_pull_media) {
-      const reqId = meetingMessage.req_id;
+    public async handleMediaPushMedia(meetingMessage: constdomain.call_pull_video) {
+      const reqId = meetingMessage.reqId;
       if(this.pushEndpoint){
-        const cacheReqId = this.pushEndpoint.getUserData('req_id');
+        const cacheReqId = this.pushEndpoint.getUserData('reqId');
         if(cacheReqId === reqId) {
-          await this.sendMediaReply(meetingMessage, 200, 'ok', this.pushEndpoint.getSdpAnswer());
+          await this.sendMediaReply(meetingMessage, 200, 'ok cached', this.pushEndpoint.getSdpAnswer());
           return;
         } else {
           try {
@@ -126,21 +126,28 @@ export class MeetingMemeber extends CallMember {
         }
       }
       this.pushEndpoint = await this.createVideoEndpointForUserId(this.userId);
-      this.pushEndpoint.setUserData('req_id', reqId);
-      const sdp_answer = await this.pushEndpoint.processOffer(meetingMessage.sdp_offer);
-      await this.sendMediaReply(meetingMessage, 200, 'ok', sdp_answer);
+      this.pushEndpoint.setUserData('reqId', reqId);
+      const sdpAnswer = await this.pushEndpoint.processOffer(meetingMessage.sdpOffer);
+      await this.sendMediaReply(meetingMessage, 200, 'ok', sdpAnswer);
+      for(let [userId, member] of this.callGroup.members) {
+        const meetingMember = member as MeetingMemeber;
+        const pullEndpoint = meetingMember.pullEndpoints.get(this.userId);
+        if(pullEndpoint) {
+          this.pushEndpoint.connectSendTo(pullEndpoint, 'VIDEO');
+        }
+      }
     }
-    public async handleMediaPullMedia(meetingMessage: constdomain.call_pull_media) {
-      const reqId = meetingMessage.req_id;
-      const peerMember = this.callGroup.members.get(meetingMessage.peer_id) as MeetingMemeber;
-      if(!peerMember||peerMember.pushEndpoint === null) {
+    public async handleMediaPullMedia(meetingMessage: constdomain.call_pull_video) {
+      const reqId = meetingMessage.reqId;
+      const peerMember = this.callGroup.members.get(meetingMessage.peerId) as MeetingMemeber;
+      if(!peerMember) {
         await this.callGroup.callServiceApi.sendRespMsg(meetingMessage, 404, 'peer not found');
         return;
       }
-      var pullEndpont = this.pullEndpoints.get(meetingMessage.peer_id);
+      var pullEndpont = this.pullEndpoints.get(meetingMessage.peerId);
       if(pullEndpont) {
-        if(reqId === pullEndpont.getUserData('req_id')) {
-          await this.sendMediaReply(meetingMessage, 200, 'ok', pullEndpont.getSdpAnswer());
+        if(reqId === pullEndpont.getUserData('reqId')) {
+          await this.sendMediaReply(meetingMessage, 200, 'ok cached', pullEndpont.getSdpAnswer());
           return;
         } else {
           try {
@@ -148,40 +155,38 @@ export class MeetingMemeber extends CallMember {
           } catch (error) {
             console.error('release pullEndpoint error', error);
           }
-          this.pullEndpoints.delete(meetingMessage.peer_id);
+          this.pullEndpoints.delete(meetingMessage.peerId);
           pullEndpont = undefined;
         }
       }
       
       try {
-        const pullEndpont = await this.createVideoEndpointForUserId(meetingMessage.peer_id);
-        pullEndpont.setUserData('req_id', reqId);
-        this.pullEndpoints.set(meetingMessage.peer_id, pullEndpont);
-        peerMember.pushEndpoint.connectSendTo(pullEndpont, 'VIDEO');
-        const sdp_answer = await pullEndpont.processOffer(meetingMessage.sdp_offer);
-        await this.sendMediaReply(meetingMessage, 200, 'ok', sdp_answer);
+        const pullEndpont = await this.createVideoEndpointForUserId(meetingMessage.peerId);
+        pullEndpont.setUserData('reqId', reqId);
+        this.pullEndpoints.set(meetingMessage.peerId, pullEndpont);
+        const sdpAnswer = await pullEndpont.processOffer(meetingMessage.sdpOffer);
+        await this.sendMediaReply(meetingMessage, 200, 'ok', sdpAnswer);
+        if(peerMember.pushEndpoint) {
+          peerMember.pushEndpoint.connectSendTo(pullEndpont, 'VIDEO');
+        }
       } catch (error) {
         console.error('createEndpoint error', error);
         await this.callGroup.callServiceApi.sendRespMsg(meetingMessage, 500, 'create media member error');
       }
     }
-    public async handleMediaVideoIce(meetingMessage: constdomain.call_pull_ice) {
+    public async handleMediaVideoIce(meetingMessage: constdomain.request_call_video_ice) {
       let iceEndpoint = null;
-      if(!meetingMessage.peer_id) {
-        await this.callGroup.callServiceApi.sendRespMsg(meetingMessage, 404, 'peer_id not found');
+      if(!meetingMessage.peerId) {
+        await this.callGroup.callServiceApi.sendRespMsg(meetingMessage, 404, 'peerId not found');
+        return;
       }
-      if(meetingMessage.peer_id === this.userId) {
+      if(meetingMessage.peerId === this.userId) {
         iceEndpoint = this.pushEndpoint;
       } else {
-        iceEndpoint = this.pullEndpoints.get(meetingMessage.peer_id);
+        iceEndpoint = this.pullEndpoints.get(meetingMessage.peerId);
       }
       if(!iceEndpoint) {
         await this.callGroup.callServiceApi.sendRespMsg(meetingMessage, 404, 'iceEndpoint not found');
-        return;
-      }
-      const pullEndpont = this.pullEndpoints.get(meetingMessage.peer_id);
-      if(!pullEndpont) {
-        await this.callGroup.callServiceApi.sendRespMsg(meetingMessage, 404, 'pullEndpont not found');
         return;
       }
       await this.callGroup.callServiceApi.sendRespMsg(meetingMessage, 200, 'ok');
@@ -234,66 +239,66 @@ export class MeetingGroup extends CallGroup {
     public async handleQueryMemberOnline(meetingMessage: constdomain.request_base) {
       let response = {
         type: constdomain.kMsgResponse,
-        req_id: meetingMessage.req_id,
-        for_type: constdomain.kMsgQueryMemberOnline,
+        reqId: meetingMessage.reqId,
+        forType: constdomain.kMsgQueryMemberOnline,
         code: 200,
-        code_msg: 'ok',
+        codeMsg: 'ok',
         members: [...this.members].map(([userId, member]) => member.toOnlineJson())
       } 
-      await this.callServiceApi.sendResponeNeedAck(meetingMessage.user_id, response);
+      await this.callServiceApi.sendResponeNeedAck(meetingMessage.userId, response);
     }
     public async handleQueryMemberAll(meetingMessage: constdomain.request_base) {
       let response = {
         type: constdomain.kMsgResponse,
-        req_id: meetingMessage.req_id,
-        for_type: constdomain.kMsgQueryMemberAll,
+        reqId: meetingMessage.reqId,
+        forType: constdomain.kMsgQueryMemberAll,
         code: 200,
-        code_msg: 'ok',
+        codeMsg: 'ok',
         members: [...this.allMembers].map(([userId, member]) => {return {id: userId, name: member.name};})
       } 
-      await this.callServiceApi.sendResponeNeedAck(meetingMessage.user_id, response);
+      await this.callServiceApi.sendResponeNeedAck(meetingMessage.userId, response);
     }
     public async handleQueryMemberOne(meetingMessage: constdomain.request_base) {
-      let member = this.allMembers.get((meetingMessage as any).query_user_id);
+      let member = this.allMembers.get((meetingMessage as any).query_userId);
       if(!member) {
         await this.callServiceApi.sendRespMsg(meetingMessage, 404, 'member not found');
         return;
       }
       let response = {
         type: constdomain.kMsgResponse,
-        req_id: meetingMessage.req_id,
-        for_type: constdomain.kMsgQueryMemberOne,
+        reqId: meetingMessage.reqId,
+        forType: constdomain.kMsgQueryMemberOne,
         code: 200,
-        code_msg: 'ok',
+        codeMsg: 'ok',
         member: member.toFullJson()
       } 
-      await this.callServiceApi.sendResponeNeedAck(meetingMessage.user_id, response);
+      await this.callServiceApi.sendResponeNeedAck(meetingMessage.userId, response);
     }
     public async handleUpdateMyStatus(meetingMessage: constdomain.request_base) {
-      let member = this.members.get(meetingMessage.user_id);
+      let member = this.members.get(meetingMessage.userId);
       if(!member) {
         await this.callServiceApi.sendRespMsg(meetingMessage, 404, 'member not found');
         return;
       }
       let hasChange = false;
-      const mic_on = (meetingMessage as any).mic_on;
-      const camera_on = (meetingMessage as any).camera_on;
-      const mt_in_state = (meetingMessage as any).mt_in_state;
-      if(mic_on !== undefined&& mic_on !== member.mic_on) {
-        member.mic_on = mic_on;
+      const micOn = (meetingMessage as any).micOn;
+      const cameraOn = (meetingMessage as any).cameraOn;
+      const mtInState = (meetingMessage as any).mtInState;
+      if(micOn !== undefined&& micOn !== member.micOn) {
+        member.micOn = micOn;
         hasChange = true;
       }
-      if(camera_on !== undefined&& camera_on !== member.camera_on) {
-        member.camera_on = camera_on;
+      if(cameraOn !== undefined&& cameraOn !== member.cameraOn) {
+        member.cameraOn = cameraOn;
         hasChange = true;
       }
-      if(mt_in_state !== undefined&& mt_in_state !== member.mt_in_state) {
-        member.mt_in_state = mt_in_state;
+      if(mtInState !== undefined&& mtInState !== member.mtInState) {
+        member.mtInState = mtInState;
         hasChange = true;
       }
       await this.callServiceApi.sendRespMsg(meetingMessage, 200, 'ok');
       if(hasChange) {
-        this.broadcastMemberStatus(member, meetingMessage.user_id);
+        this.broadcastMemberStatus(member, meetingMessage.userId);
       }
     }
     public async broadcastMemberStatus(infoMember: CallMember,excludeUser:string) {
@@ -301,10 +306,10 @@ export class MeetingGroup extends CallGroup {
         if(userId !== excludeUser) {
           this.callServiceApi.sendReqNeedResp(userId, {
             type: constdomain.kMsgInfoUserStatus,
-            req_id: constutil.makeid(),
+            reqId: constutil.makeid(),
             from: constdomain.kMqttTopicMeetingService,
-            meeting_id: this.meetingId,
-            call_id: member.callId,
+            meetingId: this.meetingId,
+            callId: member.callId,
             to: userId,
             members: [infoMember.toOnlineJson()],
           });

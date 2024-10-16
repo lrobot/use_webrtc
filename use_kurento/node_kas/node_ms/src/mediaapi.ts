@@ -7,7 +7,7 @@ export interface MediaEndpoint {
   setIceCandidateCallback(callback: (candidate: string) => void): void;
   setIceStateCallback(callback: (state: string) => void): void;
   addIceCandidate(candidate: any): Promise<void>;
-  processOffer(sdp_offer: string): Promise<string>;
+  processOffer(sdpOffer: string): Promise<string>;
   hasSdpAnswer(): boolean;
   getSdpAnswer(): string;
   setUserData(key: string, value: string): void;

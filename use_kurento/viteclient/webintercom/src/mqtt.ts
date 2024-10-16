@@ -3,17 +3,17 @@
 
 import mqtt from "mqtt"; // import namespace "mqtt"
 import { makeid } from "./util";
-export const mqttUrl = 'wss://yjdd.lm-t.cn/mq/mqtt';
+export const mqttUrl = 'wss://mqtt.zhddkuma/mq/mqtt';
 // export const mqttUrl = 'wss://srv.rbat.tk:8081';
 
 const TopicMeetingService = "meeting/service";
 
 export interface MeetingReq {
     type : string;
-    req_id: string;
+    reqId: string;
     meeting_type : string;
-    meeting_id : string;
-    call_id : string;
+    meetingId : string;
+    callId : string;
     user_id : string;
 }
 
@@ -27,10 +27,10 @@ class ReqTrans {
 
 interface MeetingResp {
     type : string;
-    for_type : string;
-    req_id: string;
+    forType : string;
+    reqId: string;
     code : number;
-    code_msg : string;
+    codeMsg : string;
 }
 
 export class MqttClient {
@@ -79,29 +79,29 @@ export class MqttClient {
             this.onRequest(jsonMsg as MeetingReq);
         }
     }
-    setMeetingReqFn(meeting_id:string, fn:(req: MeetingReq)=>void) {
-        this.meeingReqFnMap.set(meeting_id, fn);
+    setMeetingReqFn(meetingId:string, fn:(req: MeetingReq)=>void) {
+        this.meeingReqFnMap.set(meetingId, fn);
     }
-    removeMeetingReqFn(meeting_id:string) {
-        this.meeingReqFnMap.delete(meeting_id);
+    removeMeetingReqFn(meetingId:string) {
+        this.meeingReqFnMap.delete(meetingId);
     }
     onRequest(req: MeetingReq) {
-        this.sendResp(req.req_id, req.type, 200, "ok");
-        const fn = this.meeingReqFnMap.get(req.meeting_id);
+        this.sendResp(req.reqId, req.type, 200, "ok");
+        const fn = this.meeingReqFnMap.get(req.meetingId);
         if(fn) {
             fn(req);
         }
     }
     onResponse(resp: MeetingResp) {
         if((resp as any).need_ack) {
-            this.sendAck(resp.req_id);
+            this.sendAck(resp.reqId);
         }
-       const reqTrans = this.reqTransMap.get(resp.req_id);
+       const reqTrans = this.reqTransMap.get(resp.reqId);
        if(reqTrans) {
               reqTrans.resolve(resp);
        }
        if(resp.code>=200) {
-           this.reqTransMap.delete(resp.req_id);
+           this.reqTransMap.delete(resp.reqId);
        }
     }
 
@@ -109,59 +109,59 @@ export class MqttClient {
         const userTopic = this.getUserTopic(username);
         this.clientPublish(userTopic, JSON.stringify(req));
         return new Promise((resolve, reject) => {
-            this.reqTransMap.set(req.req_id, {topic:userTopic ,req, resolve, reject});
+            this.reqTransMap.set(req.reqId, {topic:userTopic ,req, resolve, reject});
             setTimeout(() => {
-                const reqTrans = this.reqTransMap.get(req.req_id);
+                const reqTrans = this.reqTransMap.get(req.reqId);
                 if(reqTrans) {
                     reqTrans.reject("timeout");
-                    this.reqTransMap.delete(req.req_id);
+                    this.reqTransMap.delete(req.reqId);
                 }
             }, 10*1000);
             setTimeout(() => {
-                const reqTrans = this.reqTransMap.get(req.req_id);
+                const reqTrans = this.reqTransMap.get(req.reqId);
                 if(reqTrans) {
                     this.clientPublish(userTopic, JSON.stringify(req));
                 }
             }, 3*1000);
         });
     }
-    sendResp(req_id: string, for_type:string, code: number, code_msg: string) {
+    sendResp(reqId: string, forType:string, code: number, codeMsg: string) {
         this.clientPublish(TopicMeetingService, JSON.stringify({
             type: "response",
-            for_type,
-            req_id,
+            forType,
+            reqId,
             code,
-            code_msg
+            codeMsg
         }));
     }
-    sendAck(req_id: string) {
+    sendAck(reqId: string) {
         this.clientPublish(TopicMeetingService, JSON.stringify({
             type: "ack",
-            req_id
+            reqId
         }));
     }
-    sendRespToUser(username:string, req_id: string, for_type:string, code: number, code_msg: string) {
+    sendRespToUser(username:string, reqId: string, forType:string, code: number, codeMsg: string) {
         this.clientPublish(this.getUserTopic(username), JSON.stringify({
             type: "response",
-            for_type,
-            req_id,
+            forType,
+            reqId,
             code,
-            code_msg
+            codeMsg
         }));
     }
     sendReq(req: MeetingReq):Promise<any> {
         this.clientPublish(TopicMeetingService, JSON.stringify(req));
         return new Promise((resolve, reject) => {
-            this.reqTransMap.set(req.req_id, {topic:TopicMeetingService, req, resolve, reject});
+            this.reqTransMap.set(req.reqId, {topic:TopicMeetingService, req, resolve, reject});
             setTimeout(() => {
-                const reqTrans = this.reqTransMap.get(req.req_id);
+                const reqTrans = this.reqTransMap.get(req.reqId);
                 if(reqTrans) {
                     reqTrans.reject("timeout");
-                    this.reqTransMap.delete(req.req_id);
+                    this.reqTransMap.delete(req.reqId);
                 }
             }, 10*1000);
             setTimeout(() => {
-                const reqTrans = this.reqTransMap.get(req.req_id);
+                const reqTrans = this.reqTransMap.get(req.reqId);
                 if(reqTrans) {
                     this.clientPublish(TopicMeetingService, JSON.stringify(req));
                 }

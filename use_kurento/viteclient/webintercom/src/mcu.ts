@@ -35,11 +35,11 @@ window.onbeforeunload = ()=>{
 
 var call:Call|null = null;
 
-export function IntercomJoin(meeting_id:string) {
+export function IntercomJoin(meetingId:string) {
 	if(call) {
 		call.callLeave();
 	}
-	call = new Call(meeting_id);
+	call = new Call(meetingId);
 	call.callJoin();
 }
 

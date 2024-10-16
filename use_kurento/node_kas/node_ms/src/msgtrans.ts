@@ -8,7 +8,7 @@ interface MsgTran {
   retryCount:number
   topic:string
   json:any
-  req_id:string
+  reqId:string
 }
 
 
@@ -23,18 +23,18 @@ class MsgTrans {
     return constdomain.kMqttTopicUserPrefix + userId;
   }
   doPublish(topic: string, json:string) {
-    console.log("m_ ot_:", topic, json);
+    console.log("m_ ot_:", (new Date()).toISOString(), topic, json);
     this.mqtt.publish(topic, json);
   }
   async _sendMsg(topic: string, json:any) {
-    json.bus_type = constdomain.kBusTypeMeeting;
+    json.busType = constdomain.kBusTypeMeeting;
     this.doPublish(topic, JSON.stringify(json));
   }
   async _sendMsgWithTranscation(topic: string, json:any) {
-    json.bus_type = constdomain.kBusTypeMeeting;
-    this.trans.set(json.req_id, {topic: topic, json: json, req_id: json.req_id, retryCount: 5});
+    json.busType = constdomain.kBusTypeMeeting;
+    this.trans.set(json.reqId, {topic: topic, json: json, reqId: json.reqId, retryCount: 5});
     this.doPublish(topic, JSON.stringify(json));
-    this.delaySendMsg(topic, json.req_id);
+    this.delaySendMsg(topic, json.reqId);
   }
 
   async sendReq(userId: string, json:any) {
@@ -45,7 +45,7 @@ class MsgTrans {
     this._sendMsgWithTranscation(this.getUserTopic(userId), json);
   }
   async sendResponeNeedAck(userId: string, json:any) {
-    json.need_ack = true;
+    json.needAck = true;
     this._sendMsgWithTranscation(this.getUserTopic(userId), json);
   }
   async sendRespone(userId: string, json:any) {

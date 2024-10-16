@@ -18,45 +18,45 @@ export class CallMember {
   lastIceStateMs: number;
   queue: PromiseFifoQueue = new PromiseFifoQueue();
   name: string = "";
-  mic_on: boolean = false;
-  camera_on: boolean = false;
-  mt_in_state: number = 0;
-  forever_kick: boolean = false;
-  forever_mic_off: boolean = false;
-  forever_camera_off: boolean = false;
-  mt_out_state: string = "";  //inviting|leave|lost|busy|invite_timeout   #字符串描述的再会状态
-  mt_out_ms: number = 0;  //离开时间
+  micOn: boolean = false;
+  cameraOn: boolean = false;
+  mtInState: number = 0;
+  foreverKick: boolean = false;
+  foreverMicOff: boolean = false;
+  foreverCameraOff: boolean = false;
+  mtOutState: string = "";  //inviting|leave|lost|busy|invite_timeout   #字符串描述的再会状态
+  mtOutMs: number = 0;  //离开时间
   toOnlineJson() {
     return {
-      user_id: this.userId,
+      userId: this.userId,
       name: this.name,
-      mic_on: this.mic_on,
-      camera_on: this.camera_on,
-      mt_in_state: this.mt_in_state,
+      micOn: this.micOn,
+      cameraOn: this.cameraOn,
+      mtInState: this.mtInState,
     }
   }
   toFullJson() {
     return { ...this.toOnlineJson(),
-      forever_kick: this.forever_kick,
-      forever_mic_off: this.forever_mic_off,
-      forever_camera_off: this.forever_camera_off,
-      mt_out_state: this.mt_out_state,
-      mt_out_ms: this.mt_out_ms,
+      foreverKick: this.foreverKick,
+      foreverMicOff: this.foreverMicOff,
+      foreverCameraOff: this.foreverCameraOff,
+      mtOutState: this.mtOutState,
+      mtOutMs: this.mtOutMs,
     }
   }
   constructor(callGroup: CallGroup, msg:any, mediaEndpoint: meetingMediaApi.MediaEndpoint) {
     this.lastIceState = 'DISCONNECTED';
     this.lastIceStateMs = Date.now();
     this.callGroup = callGroup;
-    this.userId = msg.user_id;
-    this.callId = msg.call_id;
+    this.userId = msg.userId;
+    this.callId = msg.callId;
     this.defaultMediaEndpoint = mediaEndpoint;
     this.defaultMediaEndpoint.setIceCandidateCallback(async (candidate:any) => {
       let iceCandidate = {
         type: constdomain.kCallIce,
-        req_id: constutil.makeid(),
-        meeting_id: this.callGroup.meetingId,
-        call_id: this.callId,
+        reqId: constutil.makeid(),
+        meetingId: this.callGroup.meetingId,
+        callId: this.callId,
         ice: candidate
       } as constdomain.intercom_ice;
       await this.callGroup.callServiceApi.sendReqNeedResp(this.userId, iceCandidate); // send ice candidate to other members
@@ -120,8 +120,8 @@ export class CallMember {
     if(this.defaultMediaEndpoint.hasSdpAnswer()) {
       await this.sendJoinReply(meetingMessage, 200, 'ok', this.defaultMediaEndpoint.getSdpAnswer(), false);
     }else {
-      const sdp_answer = await this.defaultMediaEndpoint.processOffer(meetingMessage.sdp_offer);
-      await this.sendJoinReply(meetingMessage, 200, 'ok', sdp_answer, true);
+      const sdpAnswer = await this.defaultMediaEndpoint.processOffer(meetingMessage.sdpOffer);
+      await this.sendJoinReply(meetingMessage, 200, 'ok', sdpAnswer, true);
     }
   }
 
@@ -141,19 +141,19 @@ export class CallMember {
     this.defaultMediaEndpoint.release();
   }
 
-  public async sendJoinReply(msg:any, code: number, codeMsg: string, sdp_answer:string, useTranscation:boolean = true) {
+  public async sendJoinReply(msg:any, code: number, codeMsg: string, sdpAnswer:string, useTranscation:boolean = true) {
     let join_ok = {
       type: constdomain.kMsgResponse,
-      for_type: msg.type,
+      forType: msg.type,
       code: code,
-      code_msg: codeMsg,
-      req_id: msg.req_id,
-      sdp_answer: sdp_answer,
+      codeMsg: codeMsg,
+      reqId: msg.reqId,
+      sdpAnswer: sdpAnswer,
     } as constdomain.call_join_response;
     if(useTranscation) {
-      await this.callGroup.callServiceApi.sendResponeNeedAck(msg.user_id, join_ok);
+      await this.callGroup.callServiceApi.sendResponeNeedAck(msg.userId, join_ok);
     } else {
-      await this.callGroup.callServiceApi.sendRespone(msg.user_id, join_ok);
+      await this.callGroup.callServiceApi.sendRespone(msg.userId, join_ok);
     }
   }
 
@@ -179,7 +179,7 @@ export class CallGroup {
   members: Map<string, CallMember> = new Map<string, CallMember>();
   currentSpeakerUser: string = "";
   currentStatusCnt: number = 0;
-  currentSpeakerLevel: number = 0;
+  currentSpeakerLevel: number = constdomain.kDefaultSpeechLevel;
   public async handleExtMessage(meetingMessage:any) {
     console.log('err call handleExtMessage on base');
   }
@@ -217,18 +217,18 @@ export class CallGroup {
   }
   async tryLoadMeetingMember(meetingMessage:any) {
     var meetingMember = null;
-    if(meetingMessage.user_id) {
-      meetingMember = this.members.get(meetingMessage.user_id);
+    if(meetingMessage.userId) {
+      meetingMember = this.members.get(meetingMessage.userId);
     }
     if(meetingMessage.type === constdomain.kCallJoin) {
-      if(meetingMember && meetingMember.callId !== meetingMessage.call_id) {
+      if(meetingMember && meetingMember.callId !== meetingMessage.callId) {
         //delete exist old member
         meetingMember.release();
         meetingMember = null;
-        this.members.delete(meetingMessage.user_id);
+        this.members.delete(meetingMessage.userId);
       }
       if(!meetingMember) {
-        if(meetingMessage.user_id === undefined) return;
+        if(meetingMessage.userId === undefined) return;
         try {
           const mediaEndpoint = await this.mediaGroup.createEndpoint();
           meetingMember = await this.callServiceApi.createMember(this, meetingMessage, mediaEndpoint);
@@ -237,7 +237,7 @@ export class CallGroup {
           await this.callServiceApi.sendRespMsg(meetingMessage, 500, 'create media member error');
           return; 
         }
-        this.members.set(meetingMessage.user_id, meetingMember);
+        this.members.set(meetingMessage.userId, meetingMember);
       }  
     }
     return meetingMember;
@@ -252,7 +252,7 @@ export class CallGroup {
           await meetingMember.onMessage(meetingMessage);
           break;
         default:
-          await this.handleExtMessage(meetingMessage);
+          console.log('unknown message type', meetingMessage.type);
           break;
       }
       

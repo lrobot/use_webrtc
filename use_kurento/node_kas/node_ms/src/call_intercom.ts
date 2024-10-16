@@ -25,7 +25,7 @@ export class IntercomGroup extends CallGroup {
     public handleMemberMediaLost(CallMember: CallMember) {
       this.queue.enqueue(async () => {
         if(CallMember.userId === this.currentSpeakerUser) {
-          this.setCurrentSpeaker("", 999);
+          this.setCurrentSpeaker("", constdomain.kDefaultSpeechLevel);
           this.broadcastStatus(this);
         }
       });
@@ -33,28 +33,28 @@ export class IntercomGroup extends CallGroup {
     async speechCtrlResponse(reqId:string, userId:string, code:number, codeMsg:string) {
       await this.callServiceApi.sendRespone(userId, {
         type:constdomain.kMsgResponse,
-        req_id: reqId,
+        reqId: reqId,
         from: constdomain.kMqttTopicMeetingService,
         to: userId,
-        for_type: constdomain.kIntercomSpeechCtrl,
+        forType: constdomain.kIntercomSpeechCtrl,
         code: code,
-        code_msg: codeMsg,
-        need_ack: true,
+        codeMsg: codeMsg,
+        needAck: true,
       } as constdomain.respone_base);
     }
   
     async handleQuery(meetingMessage: constdomain.request_base) {
       let response = {
         type: constdomain.kMsgResponse,
-        req_id: meetingMessage.req_id,
-        for_type: constdomain.kIntercomQuery,
+        reqId: meetingMessage.reqId,
+        forType: constdomain.kIntercomQuery,
         code: 200,
-        code_msg: 'ok',
-        current_speaker_user: this.currentSpeakerUser,
-        current_status_cnt: this.currentStatusCnt,
-        current_speaker_level: this.currentSpeakerLevel,
+        codeMsg: 'ok',
+        currentSpeakerUser: this.currentSpeakerUser,
+        currentStatusCnt: this.currentStatusCnt,
+        currentSpeakerLevel: this.currentSpeakerLevel,
       } as constdomain.intercom_status_resp;
-      await this.callServiceApi.sendResponeNeedAck(meetingMessage.user_id, response);
+      await this.callServiceApi.sendResponeNeedAck(meetingMessage.userId, response);
     }
   
     async broadcastStatus(meeting: CallGroup, excludeUser:string = "") {
@@ -62,62 +62,62 @@ export class IntercomGroup extends CallGroup {
         if(userId !== excludeUser) {
           this.callServiceApi.sendReqNeedResp(userId, {
             type: constdomain.kIntercomStatus,
-            req_id: constutil.makeid(),
+            reqId: constutil.makeid(),
             from: constdomain.kMqttTopicMeetingService,
-            meeting_id: meeting.meetingId,
-            call_id: member.callId,
+            meetingId: meeting.meetingId,
+            callId: member.callId,
             to: userId,
-            current_speaker_user: meeting.currentSpeakerUser,
-            current_status_cnt: meeting.currentStatusCnt,
-            current_speaker_level: meeting.currentSpeakerLevel
+            currentSpeakerUser: meeting.currentSpeakerUser,
+            currentStatusCnt: meeting.currentStatusCnt,
+            currentSpeakerLevel: meeting.currentSpeakerLevel
           } as constdomain.intercom_status_req);
         }
       }
     }
   
-    async _handleSpeechForce(meetingMessage: constdomain.intercom_speechctrl) {
-      if(this.currentSpeakerLevel < meetingMessage.user_speech_level) {
-        await this.speechCtrlResponse(meetingMessage.req_id, meetingMessage.user_id, 400, 'speaker level is lower');
+    async _handleSpeechForce(meetingMessage: constdomain.request_intercom_speech_ctrl) {
+      if(this.currentSpeakerLevel < meetingMessage.userSpeechLevel) {
+        await this.speechCtrlResponse(meetingMessage.reqId, meetingMessage.userId, 400, 'speaker level is lower');
         return;
       }
-      const newUserId = meetingMessage.speech_on?meetingMessage.user_id:"";
-      const newLevel = meetingMessage.speech_on?meetingMessage.user_speech_level:999;
+      const newUserId = meetingMessage.speechOn?meetingMessage.userId:"";
+      const newLevel = meetingMessage.speechOn?meetingMessage.userSpeechLevel:constdomain.kDefaultSpeechLevel;
   
-      await this.speechCtrlResponse(meetingMessage.req_id, meetingMessage.user_id, 200, 'ok');
+      await this.speechCtrlResponse(meetingMessage.reqId, meetingMessage.userId, 200, 'ok');
       if(this.currentSpeakerUser !== newUserId) {
         this.setCurrentSpeaker(newUserId, newLevel);
-        this.broadcastStatus(this, meetingMessage.user_id);
+        this.broadcastStatus(this, meetingMessage.userId);
       }
     }
   
-    async _handleSpeechCtrl(meetingMessage: constdomain.intercom_speechctrl) {
-      if(meetingMessage.speech_on) {
-        if(this.currentSpeakerUser === ""||this.currentSpeakerUser === meetingMessage.user_id) {
-          if(this.currentSpeakerUser === meetingMessage.user_id) {
-            await this.speechCtrlResponse(meetingMessage.req_id, meetingMessage.user_id, 200, 'ok');
+    async _handleSpeechCtrl(meetingMessage: constdomain.request_intercom_speech_ctrl) {
+      if(meetingMessage.speechOn) {
+        if(this.currentSpeakerUser === ""||this.currentSpeakerUser === meetingMessage.userId) {
+          if(this.currentSpeakerUser === meetingMessage.userId) {
+            await this.speechCtrlResponse(meetingMessage.reqId, meetingMessage.userId, 200, 'ok');
           } else {
-            this.setCurrentSpeaker(meetingMessage.user_id, meetingMessage.user_speech_level);
-            await this.speechCtrlResponse(meetingMessage.req_id, meetingMessage.user_id, 200, 'ok');
-            this.broadcastStatus(this, meetingMessage.user_id);
+            this.setCurrentSpeaker(meetingMessage.userId, meetingMessage.userSpeechLevel);
+            await this.speechCtrlResponse(meetingMessage.reqId, meetingMessage.userId, 200, 'ok');
+            this.broadcastStatus(this, meetingMessage.userId);
           }
         } else {
-          await this.speechCtrlResponse(meetingMessage.req_id, meetingMessage.user_id, 400, 'speaker exist');
+          await this.speechCtrlResponse(meetingMessage.reqId, meetingMessage.userId, 400, 'speaker exist');
         }
       } else {
         if(this.currentSpeakerUser === "") {
-          await this.speechCtrlResponse(meetingMessage.req_id, meetingMessage.user_id, 200, "no_speakder");
-        } else if(this.currentSpeakerUser === meetingMessage.user_id) {
-          this.setCurrentSpeaker("", 999);
-          await this.speechCtrlResponse(meetingMessage.req_id, meetingMessage.user_id, 200, "ok");
-          this.broadcastStatus(this, meetingMessage.user_id);
+          await this.speechCtrlResponse(meetingMessage.reqId, meetingMessage.userId, 200, "no_speakder");
+        } else if(this.currentSpeakerUser === meetingMessage.userId) {
+          this.setCurrentSpeaker("", constdomain.kDefaultSpeechLevel);
+          await this.speechCtrlResponse(meetingMessage.reqId, meetingMessage.userId, 200, "ok");
+          this.broadcastStatus(this, meetingMessage.userId);
         } else {
-          await this.speechCtrlResponse(meetingMessage.req_id, meetingMessage.user_id, 400, "speaker is not you");
+          await this.speechCtrlResponse(meetingMessage.reqId, meetingMessage.userId, 400, "speaker is not you");
         }
       }
     }
   
   
-    async handleSpeechCtrl(meetingMessage: constdomain.intercom_speechctrl) {
+    async handleSpeechCtrl(meetingMessage: constdomain.request_intercom_speech_ctrl) {
       if(meetingMessage.force) {
         await this._handleSpeechForce(meetingMessage);
       } else {
