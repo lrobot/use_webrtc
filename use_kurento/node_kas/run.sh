@@ -1,4 +1,4 @@
-
+set -x
 docker build -f Dockerfile .
 
 while true; do
