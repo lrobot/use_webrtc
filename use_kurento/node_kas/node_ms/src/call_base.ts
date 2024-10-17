@@ -133,7 +133,9 @@ export class CallMember {
   }
   async handleIce(meetingMessage: constdomain.intercom_ice) {
     await this.callGroup.callServiceApi.sendRespMsg(meetingMessage, 200, 'ok');
-    meetingMessage.ice.candidate = meetingMessage.ice.sdp;
+    if(meetingMessage.ice.sdp && !meetingMessage.ice.candidate) {
+      meetingMessage.ice.candidate = meetingMessage.ice.sdp;
+    }
     await this.addIceCandidate(meetingMessage.ice);
   }
 
