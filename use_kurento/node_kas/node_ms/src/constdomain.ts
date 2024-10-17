@@ -52,7 +52,7 @@ export interface message_base {
 export interface request_base extends message_base {
   callId: string;
   userId: string;
-  //need_resp: boolean;
+  //needResp: boolean;
 }
 
 export interface respone_base extends message_base {

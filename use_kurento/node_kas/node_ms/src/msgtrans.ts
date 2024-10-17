@@ -41,7 +41,7 @@ class MsgTrans {
     this._sendMsg(this.getUserTopic(userId), json);
   }
   async sendReqNeedResp(userId: string, json:any) {
-    json.need_resp = true;
+    json.needResp = true;
     this._sendMsgWithTranscation(this.getUserTopic(userId), json);
   }
   async sendResponeNeedAck(userId: string, json:any) {
