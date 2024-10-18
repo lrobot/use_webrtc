@@ -22,6 +22,12 @@ export class MediaEndpointKurento implements meetingMediaApi.MediaEndpoint {
         this.iceCandidateCallback(candidate);
       }
     });
+    this.webrtcEndpoint.on('IceComponentStateChange', (event) => {
+      // console.log('IceComponentStateChange', event.state);
+      if(this.iceStateCallback !== null) {
+        this.iceStateCallback(event.state);
+      }
+    });
   }
   setUserData(key: string, value: string) {
     this.userData[key] = value;

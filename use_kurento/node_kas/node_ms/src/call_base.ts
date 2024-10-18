@@ -208,7 +208,7 @@ export class CallGroup {
   }
   doMemberRemove(userId: string) {
     this.members.delete(userId);
-    if(this.members.size === 0) {
+    if(this.members.size === -1) {
       console.log('meeting remove', this.meetingId, "when member is 0", userId);
       this.callServiceApi.onGroupRemoved(this.meetingType, this.meetingId);
       this.release();
