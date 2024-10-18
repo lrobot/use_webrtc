@@ -127,6 +127,7 @@ export class IntercomGroup extends CallGroup {
       this.currentSpeakerUser = meetingMessage.userId;
       this.currentSpeakerLevel = meetingMessage.userSpeechLevel;
       this.currentStatusCnt++;
+      await this.speechCtrlResponse(meetingMessage.reqId, meetingMessage.userId, 200, "ok");
       this.broadcastStatus(this, meetingMessage.userId);
     }
   }
