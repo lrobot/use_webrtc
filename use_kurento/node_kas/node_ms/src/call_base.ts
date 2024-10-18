@@ -95,11 +95,9 @@ export class CallMember {
     });
     this.defaultMediaEndpoint.setMediaStateCallback(async (event:any) => {
       console.log('MediaStateCallback:', event);
-      const state = event.state;
-      if(!state) return;
+      const state = event.newState;
       switch (state) {
         case 'DISCONNECTED':
-        case 'FAILED':
           if(this.lastIceState != 'DISCONNECTED' && this.lastIceState != 'FAILED') {
             this.lastIceState = state;
             const thisTime = Date.now() + Math.floor(Math.random() * 10000);
@@ -112,9 +110,6 @@ export class CallMember {
           }
           break;
         case 'CONNECTED':
-        case 'READY':
-        case "GATHERING":
-        case "CONNECTING":
           this.lastIceState = state;
           this.lastIceStateMs = Date.now() + Math.floor(Math.random() * 10000);
           break;
