@@ -124,9 +124,15 @@ export class IntercomGroup extends CallGroup {
       }
     }
     async handleSpeechCtrlDirectGo(meetingMessage: constdomain.request_intercom_speech_ctrl) {
-      this.currentSpeakerUser = meetingMessage.userId;
-      this.currentSpeakerLevel = meetingMessage.userSpeechLevel;
-      this.currentStatusCnt++;
+      if(meetingMessage.speechOn) {
+        this.currentSpeakerUser = meetingMessage.userId;
+        this.currentSpeakerLevel = meetingMessage.userSpeechLevel;
+        this.currentStatusCnt++;  
+      } else {
+        this.currentSpeakerUser = "";
+        this.currentSpeakerLevel = constdomain.kDefaultSpeechLevel;
+        this.currentStatusCnt++;
+      }
       await this.speechCtrlResponse(meetingMessage.reqId, meetingMessage.userId, 200, "ok");
       this.broadcastStatus(this, meetingMessage.userId);
     }
