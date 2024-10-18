@@ -6,6 +6,7 @@ import constutil from './constutil';
 import { PromiseFifoQueue } from './constutil';
 import MsgTrans from './msgtrans';
 import * as meetingMediaApi from './mediaapi';
+import { stat } from 'fs';
 
 
 
@@ -61,8 +62,10 @@ export class CallMember {
       } as constdomain.intercom_ice;
       await this.callGroup.callServiceApi.sendReqNeedResp(this.userId, iceCandidate); // send ice candidate to other members
     });
-    this.defaultMediaEndpoint.setIceStateCallback(async (state:any) => {
-      console.log('IceComponentStateChanged', state);
+    this.defaultMediaEndpoint.setIceStateCallback(async (event:any) => {
+      console.log('IceComponentStateChanged', event);
+      const state = event.state;
+      if(!state) return;
       switch (state) {
         case 'DISCONNECTED':
         case 'FAILED':
@@ -85,7 +88,7 @@ export class CallMember {
           this.lastIceStateMs = Date.now() + Math.floor(Math.random() * 10000);
           break;
         default:
-          console.log('IceComponentStateChanged', event);
+          console.log('IceComponentStateChanged', state);
           break;
       }
       // console.log('OnIceComponentStateChanged', event);
