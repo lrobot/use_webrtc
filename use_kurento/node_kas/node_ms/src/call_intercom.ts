@@ -12,7 +12,8 @@ export class IntercomGroup extends CallGroup {
             await this.handleQuery(meetingMessage);
             break;
           case constdomain.kIntercomSpeechCtrl:
-            await this.handleSpeechCtrl(meetingMessage);
+            // await this.handleSpeechCtrlByLevelCompare(meetingMessage);
+            await this.handleSpeechCtrlDirectGo(meetingMessage);
             break;
           default:
             await this._handleMessage(meetingMessage);
@@ -115,14 +116,18 @@ export class IntercomGroup extends CallGroup {
         }
       }
     }
-  
-  
-    async handleSpeechCtrl(meetingMessage: constdomain.request_intercom_speech_ctrl) {
+    async handleSpeechCtrlByLevelCompare(meetingMessage: constdomain.request_intercom_speech_ctrl) {
       if(meetingMessage.force) {
         await this._handleSpeechForce(meetingMessage);
       } else {
         await this._handleSpeechCtrl(meetingMessage);
       }
+    }
+    async handleSpeechCtrlDirectGo(meetingMessage: constdomain.request_intercom_speech_ctrl) {
+      this.currentSpeakerUser = meetingMessage.userId;
+      this.currentSpeakerLevel = meetingMessage.userSpeechLevel;
+      this.currentStatusCnt++;
+      this.broadcastStatus(this, meetingMessage.userId);
     }
   }
   
