@@ -78,34 +78,9 @@ export class MeetingMemeber extends CallMember {
         } as constdomain.request_call_video_ice;
         await this.callGroup.callServiceApi.sendReqNeedResp(this.userId, iceCandidate); // send ice candidate to other members
       });
-      endpoint.setIceStateCallback(async (state:string) => {
-        console.log('pull IceComponentStateChanged',userId, state);
-        // switch (state) {
-        //   case 'DISCONNECTED':
-        //   case 'FAILED':
-        //     if(this.lastIceState != 'DISCONNECTED' && this.lastIceState != 'FAILED') {
-        //       this.lastIceState = state;
-        //       const thisTime = Date.now() + + Math.floor(Math.random() * 10000);
-        //       this.lastIceStateMs = thisTime;
-        //       setTimeout(() => {
-        //         if(this.lastIceState === state && this.lastIceStateMs === thisTime) {
-        //           this.callGroup.setCurrentSpeaker
-        //         }
-        //       }, 15*1000);  
-        //     }
-        //     break;
-        //   case 'CONNECTED':
-        //   case 'READY':
-        //   case "GATHERING":
-        //   case "CONNECTING":
-        //     this.lastIceState = state;
-        //     this.lastIceStateMs = Date.now() + Math.floor(Math.random() * 10000);
-        //     break;
-        //   default:
-        //     console.log('IceComponentStateChanged', event);
-        //     break;
-        // }
-        // console.log('IceComponentStateChanged', event);
+      endpoint.setIceStateCallback(async (state:any) => {
+      });
+      endpoint.setMediaStateCallback(async (state:any) => {
       });
       return endpoint;
     }

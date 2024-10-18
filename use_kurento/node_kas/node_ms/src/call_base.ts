@@ -63,7 +63,7 @@ export class CallMember {
       await this.callGroup.callServiceApi.sendReqNeedResp(this.userId, iceCandidate); // send ice candidate to other members
     });
     this.defaultMediaEndpoint.setIceStateCallback(async (event:any) => {
-      console.log('IceComponentStateChanged', event);
+      console.log('IceStateCallback:', event);
       const state = event.state;
       if(!state) return;
       switch (state) {
@@ -89,6 +89,37 @@ export class CallMember {
           break;
         default:
           console.log('IceComponentStateChanged', state);
+          break;
+      }
+      // console.log('OnIceComponentStateChanged', event);
+    });
+    this.defaultMediaEndpoint.setMediaStateCallback(async (event:any) => {
+      console.log('MediaStateCallback:', event);
+      const state = event.state;
+      if(!state) return;
+      switch (state) {
+        case 'DISCONNECTED':
+        case 'FAILED':
+          if(this.lastIceState != 'DISCONNECTED' && this.lastIceState != 'FAILED') {
+            this.lastIceState = state;
+            const thisTime = Date.now() + Math.floor(Math.random() * 10000);
+            this.lastIceStateMs = thisTime;
+            setTimeout(() => {
+              if(this.lastIceState === state && this.lastIceStateMs === thisTime) {
+                this.callGroup.handleMemberMediaLost(this);
+              }
+            }, 15*1000);  
+          }
+          break;
+        case 'CONNECTED':
+        case 'READY':
+        case "GATHERING":
+        case "CONNECTING":
+          this.lastIceState = state;
+          this.lastIceStateMs = Date.now() + Math.floor(Math.random() * 10000);
+          break;
+        default:
+          console.log('MediaStateCallback default:', state);
           break;
       }
       // console.log('OnIceComponentStateChanged', event);

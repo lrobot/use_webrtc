@@ -30,8 +30,8 @@ export class MediaEndpointKurento implements meetingMediaApi.MediaEndpoint {
     });
     this.webrtcEndpoint.on('MediaStateChanged', (event) => {
       console.log('MediaStateChanged', event);
-      if(this.iceStateCallback !== null) {
-        this.iceStateCallback(event);
+      if(this.mediaStateCallback !== null) {
+        this.mediaStateCallback(event);
       }
     })
   }
@@ -67,6 +67,10 @@ export class MediaEndpointKurento implements meetingMediaApi.MediaEndpoint {
   setIceStateCallback(callback: (state: any) => void): void {
     this.iceStateCallback = callback;
   }
+  setMediaStateCallback(callback: (state: any) => void): void {
+    this.mediaStateCallback = callback;
+  }
+  mediaStateCallback: ((state: any) => void )|null= null
   iceStateCallback: ((state: any) => void )|null= null
   iceCandidateCallback: ((candidate: string) => void )|null= null;
   sdpAnswer: string|null = null;
