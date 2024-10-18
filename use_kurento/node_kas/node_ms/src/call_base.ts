@@ -62,7 +62,7 @@ export class CallMember {
       await this.callGroup.callServiceApi.sendReqNeedResp(this.userId, iceCandidate); // send ice candidate to other members
     });
     this.defaultMediaEndpoint.setIceStateCallback(async (state:string) => {
-      console.log('IceComponentStateChange', state);
+      console.log('IceComponentStateChanged', state);
       switch (state) {
         case 'DISCONNECTED':
         case 'FAILED':
@@ -85,7 +85,7 @@ export class CallMember {
           this.lastIceStateMs = Date.now() + Math.floor(Math.random() * 10000);
           break;
         default:
-          console.log('IceComponentStateChange', event);
+          console.log('IceComponentStateChanged', event);
           break;
       }
       // console.log('OnIceComponentStateChanged', event);

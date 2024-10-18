@@ -79,7 +79,7 @@ export class MeetingMemeber extends CallMember {
         await this.callGroup.callServiceApi.sendReqNeedResp(this.userId, iceCandidate); // send ice candidate to other members
       });
       endpoint.setIceStateCallback(async (state:string) => {
-        console.log('pull IceComponentStateChange',userId, state);
+        console.log('pull IceComponentStateChanged',userId, state);
         // switch (state) {
         //   case 'DISCONNECTED':
         //   case 'FAILED':
@@ -102,10 +102,10 @@ export class MeetingMemeber extends CallMember {
         //     this.lastIceStateMs = Date.now() + Math.floor(Math.random() * 10000);
         //     break;
         //   default:
-        //     console.log('IceComponentStateChange', event);
+        //     console.log('IceComponentStateChanged', event);
         //     break;
         // }
-        // console.log('OnIceComponentStateChanged', event);
+        // console.log('IceComponentStateChanged', event);
       });
       return endpoint;
     }
