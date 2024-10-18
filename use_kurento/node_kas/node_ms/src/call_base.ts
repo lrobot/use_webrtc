@@ -68,11 +68,11 @@ export class CallMember {
         case 'FAILED':
           if(this.lastIceState != 'DISCONNECTED' && this.lastIceState != 'FAILED') {
             this.lastIceState = state;
-            const thisTime = Date.now() + + Math.floor(Math.random() * 10000);
+            const thisTime = Date.now() + Math.floor(Math.random() * 10000);
             this.lastIceStateMs = thisTime;
             setTimeout(() => {
               if(this.lastIceState === state && this.lastIceStateMs === thisTime) {
-                this.callGroup.setCurrentSpeaker
+                this.callGroup.handleMemberMediaLost(this);
               }
             }, 15*1000);  
           }

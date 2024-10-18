@@ -23,9 +23,9 @@ export class IntercomGroup extends CallGroup {
       }
     }
   
-    public handleMemberMediaLost(CallMember: CallMember) {
+    public handleMemberMediaLost(callMember: CallMember) {
       this.queue.enqueue(async () => {
-        if(CallMember.userId === this.currentSpeakerUser) {
+        if(callMember.userId === this.currentSpeakerUser) {
           this.setCurrentSpeaker("", constdomain.kDefaultSpeechLevel);
           this.broadcastStatus(this);
         }
