@@ -5,7 +5,8 @@ export interface MediaEndpoint {
   getMediaCenter(): MediaCenter;
   release(): void;
   setIceCandidateCallback(callback: (candidate: string) => void): void;
-  setIceStateCallback(callback: (state: string) => void): void;
+  setMediaStateCallback(callback: (state: any) => void): void;
+  setIceStateCallback(callback: (state: any) => void): void;
   addIceCandidate(candidate: any): Promise<void>;
   processOffer(sdpOffer: string): Promise<string>;
   hasSdpAnswer(): boolean;
