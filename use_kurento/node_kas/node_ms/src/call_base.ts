@@ -61,7 +61,7 @@ export class CallMember {
       } as constdomain.intercom_ice;
       await this.callGroup.callServiceApi.sendReqNeedResp(this.userId, iceCandidate); // send ice candidate to other members
     });
-    this.defaultMediaEndpoint.setIceStateCallback(async (state:string) => {
+    this.defaultMediaEndpoint.setIceStateCallback(async (state:any) => {
       console.log('IceComponentStateChanged', state);
       switch (state) {
         case 'DISCONNECTED':
