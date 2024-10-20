@@ -37,10 +37,10 @@ export class MeetingMemeber extends CallMember {
     public async handleMessage(meetingMessage:any) {
       switch (meetingMessage.type) {
         case constdomain.kMsgMediaPushVideo:
-          await this.handleMediaPushMedia(meetingMessage);
+          this.handleMediaPushMedia(meetingMessage);
           break;
         case constdomain.kMsgMediaPullVideo:
-          await this.handleMediaPullMedia(meetingMessage);
+          this.handleMediaPullMedia(meetingMessage);
           break;
         case constdomain.kMsgMediaVideoIce:
           await this.handleMediaVideoIce(meetingMessage);
@@ -165,7 +165,9 @@ export class MeetingMemeber extends CallMember {
         return;
       }
       await this.callGroup.callServiceApi.sendRespMsg(meetingMessage, 200, 'ok');
-      meetingMessage.ice.candidate = meetingMessage.ice.sdp;
+      if(meetingMessage.ice.sdp && !meetingMessage.ice.candidate) {
+        meetingMessage.ice.candidate = meetingMessage.ice.sdp;
+      }
       iceEndpoint.addIceCandidate(meetingMessage.ice);
     }
   }

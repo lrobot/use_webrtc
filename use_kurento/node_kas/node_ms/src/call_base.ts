@@ -132,7 +132,7 @@ export class CallMember {
   public async _handleMessage(meetingMessage:any) {
     switch (meetingMessage.type) {
       case constdomain.kCallJoin:
-        await this.handleJoin(meetingMessage);
+        this.handleJoin(meetingMessage);
         break;
       case constdomain.kCallLeave:
         await this.handleLeave(meetingMessage);
