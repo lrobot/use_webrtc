@@ -9,6 +9,7 @@ export class WrtcClient {
     fnOnIceCandidate_: any;
     setAnswerDone = false;
     iceCandidateCache: any[] = [];
+    onIceStateChange: (state:string) => void = (state: string) => {};
     onError_(...args: any[]) {
         console.error(args);
     }
@@ -18,7 +19,9 @@ export class WrtcClient {
             this.fnOnIceCandidate_(candidate)
         }
     }
-
+    setOnIceStateChange(fn: (state:string) => void) {
+        this.onIceStateChange = fn;
+    }
     setFnOnIceCandidate(fn:any) {
         this.fnOnIceCandidate_ = fn;
     }
@@ -57,7 +60,7 @@ export class WrtcClient {
         });
     }
 
-    async createOffer() {
+    async createOffer(audioElem:HTMLAudioElement) {
         return new Promise(async (resolve, reject)=>{
             let pc = this.webrtcPc;
             pc.onicecandidate = (event:any) => {
@@ -71,10 +74,11 @@ export class WrtcClient {
                 console.log("ontrack", event);
                 if(event.track.kind !== 'audio') return;
                try {
-                var audio_elem = document.getElementById("audio") as HTMLAudioElement;
-                if(audio_elem) {
-                    if(audio_elem.srcObject !== event.streams[0]) {
-                        audio_elem.srcObject = event.streams[0]
+                // userDiv.getElementsByTagName("audio")[0].srcObject = event.streams[0];
+                // var audio_elem = document.getElementById("audio") as HTMLAudioElement;
+                if(audioElem) {
+                    if(audioElem.srcObject !== event.streams[0]) {
+                        audioElem.srcObject = event.streams[0]
                         console.log('ontrack Received remote stream');
                     }
                     // audio_elem.controls = true;
@@ -109,6 +113,7 @@ export class WrtcClient {
             }
             pc.oniceconnectionstatechange = (event:any) => {
                 console.log('oniceconnectionstatechange:', event.target.iceConnectionState, event);
+                this.onIceStateChange('mss_' + event.target.iceConnectionState);
                 if(event.target.iceConnectionState == 'disconnected'|| event.target.iceConnectionState == 'failed') {
                     console.log('Restart ice');
                     pc.restartIce();

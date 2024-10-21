@@ -7,10 +7,11 @@
 
 
 import { Call }	from "./call";
+import { IntercomAutoCall } from "./intercomcall";
 
 var videoInput: HTMLElement|null;
 var videoOutput: HTMLElement|null;
-
+var audioElem: HTMLAudioElement|null;
 
 const I_CAN_START = 0;
 const I_CAN_STOP = 1;
@@ -27,20 +28,23 @@ window.onload = function() {
 	console.log('Page loaded ...');
 	videoInput = document.getElementById('videoInput');
 	videoOutput = document.getElementById('videoOutput');
+	audioElem = document.getElementById('audio') as HTMLAudioElement;
 }
 
 window.onbeforeunload = ()=>{
 	console.log('Window closed ...');
 };
 
-var call:Call|null = null;
+var call:IntercomAutoCall|null = null;
 
 export function IntercomJoin(meetingId:string) {
 	if(call) {
 		call.callLeave();
 	}
-	call = new Call(meetingId);
-	call.callJoin();
+	call = new IntercomAutoCall("testuser1", meetingId);
+	if(audioElem) {
+		call.callJoin(audioElem);
+	}
 }
 
 

@@ -1,92 +1,113 @@
 
 
 
-import { MeetingReq } from "./mqtt";
-import { mqttClient } from "./sys";
-import { appSys } from "./sys";
+import { CallReq } from "./calluser";
 import { WrtcClient } from "./wrtc";
 import { makeid } from "./util";
-import { KurentoClient } from "./kurento";
+// import { KurentoClient } from "./kurento";
+import { CallUser } from "./calluser";
 
 
 
 
 export class Call {
     wrtcClient = new WrtcClient();
+    callUser:CallUser;
     // wrtcClient = new KurentoClient();
     meetingId: string;
     callId = makeid();
-    constructor(meetingId:string) {
+    statusUpdateFn: (status: string) => void = (status: string) => {};
+    constructor(callUser:CallUser, meetingId:string) {
+        this.callUser = callUser;
         this.meetingId = meetingId;
         this.wrtcClient.setFnOnIceCandidate(this.onLocalIceCandidate.bind(this));
-        mqttClient.setMeetingReqFn(meetingId, this.onMeetingReq.bind(this));
+        this.callUser.setCallIdReqFn(this.callId, this.onCallReq.bind(this));
+        this.wrtcClient.setOnIceStateChange((state:string) => {
+            this.statusUpdateFn(state);
+        });
     }
     release() {
-        mqttClient.removeMeetingReqFn(this.meetingId);
+        this.callUser.removeCallReqFn(this.callId);
     }
-    async callJoin() {
-        const offerSdp = await this.wrtcClient.createOffer();
-        console.log("call_join");
-        const response = await mqttClient.sendReq({
+    logStr() {
+        return `Call(${this.callUser.logStr()}), meetingId:${this.meetingId}, callId:${this.callId}`;
+    }
+    onStatusUpdate(fn: (status: string) => void) {
+        this.statusUpdateFn = fn;
+    }
+    async callJoin(audioElem:HTMLAudioElement) {
+        const offerSdp = await this.wrtcClient.createOffer(audioElem);
+        this.statusUpdateFn("calling");
+        console.log("callJoin:Offer", this.logStr(), offerSdp);
+        const response = await this.callUser.sendReq({
             reqId: makeid(),
-            type: "call_join",
+            type: "callJoin",
+            create: true,
             meetingId: this.meetingId,
             callId: this.callId,
-            user_id: appSys.user_id,
-            meeting_type: "intercom",
-            sdp_offer: offerSdp
+            userId: this.callUser.username,
+            meetingType: "intercom",
+            sdpOffer: offerSdp
         } as any);
         if(response&&response.code==200) {
-            console.log("call_join success");
+            this.statusUpdateFn("connected");
+            console.log("callJoin:Answer", this.logStr(), offerSdp);
             await this.wrtcClient.setAnswer(response.sdpAnswer);
             await this.wrtcClient.micCtrl(false);
         }
     }
 
-    onMeetingReq(req: MeetingReq) {
+    onCallReq(req: CallReq) {
+        console.log("onCallReq", req);
         switch(req.type) {
-            case "call_ice":
+            case "callIce":
                 this.wrtcClient.AddIceCandidate((req as any).ice);
                 break;
-            case "intercom_status":
-                console.log("intercom_status", req);
+            case "intercomStatus":
+                console.log("intercomStatus", req);
                 break;
         }
     }
-    async speechCtrl(force:boolean, speech_on:boolean) {
-        console.log("speech_ctrl");
-        const response = await mqttClient.sendReq({
+    async speechCtrl(force:boolean, speechOn:boolean) {
+        console.log("intercomSpeechCtrl");
+        const response = await this.callUser.sendReq({
             reqId: makeid(),
-            type: "intercom_speechctrl",
+            type: "intercomSpeechCtrl",
             meetingId: this.meetingId,
             callId: this.callId,
-            user_id: appSys.user_id,
-            meeting_type: "intercom",
+            userId: this.callUser.username,
+            meetingType: "intercom",
             force: force,
-            speech_on,
-            user_speech_level: 1
+            speechOn,
+            userSpeechLevel: 1
         } as any);
         if(response&&response.code==200) {
-            console.log("speech_ctrl success");
-            this.wrtcClient.micCtrl(speech_on);
+            console.log("intercomSpeechCtrl success");
+            this.wrtcClient.micCtrl(speechOn);
         } else {
-            console.log("speech_ctrl failed");
+            console.log("intercomSpeechCtrl failed");
+        }
+    }
+    async callLeave() {
+        console.log("callLeave");
+        this._callLeave();
+    }
+    async _callLeave() {
+        try {
+            await this.callUser.sendReq({
+                reqId: makeid(),
+                type: "callLeave",
+                meetingId: this.meetingId,
+                callId: this.callId,
+                userId: this.callUser.username,
+                meetingType: "intercom"
+            } as any);    
+        } catch (error) {
+            console.error("callLeave", error);
         }
     }
 
-    async callLeave() {
-        console.log("call_leave");
-        mqttClient.sendReq({
-            reqId: makeid(),
-            type: "call_leave",
-            meetingId: this.meetingId,
-            callId: this.callId,
-            user_id: appSys.user_id,
-            meeting_type: "intercom"
-        } as any);
-    }
-
-    onLocalIceCandidate(candidate:any) {
+    async onLocalIceCandidate(candidate:any) {
         console.log("local candidate", candidate);
         const candidateJson = JSON.parse(JSON.stringify(candidate));
         if(!candidateJson) {
@@ -95,15 +116,19 @@ export class Call {
         }
         candidateJson.sdp = candidateJson.candidate;
         console.log("local candidateJson", candidateJson);
-        mqttClient.sendReq({
-            reqId: makeid(),
-            type: "call_ice",
-            meetingId: this.meetingId,
-            callId: this.callId,
-            user_id: appSys.user_id,
-            meeting_type: "intercom",
-            ice: candidateJson
-        } as any);
+        try {
+            await this.callUser.sendReq({
+                reqId: makeid(),
+                type: "callIce",
+                meetingId: this.meetingId,
+                callId: this.callId,
+                userId: this.callUser.username,
+                meetingType: "intercom",
+                ice: candidateJson
+            } as any);            
+        } catch (error) {
+            console.error(`onLocalIceCandidate:${this.logStr()}`, error);
+        }
     }
 
 }
