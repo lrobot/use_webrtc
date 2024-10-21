@@ -113,7 +113,9 @@ export class WrtcClient {
             }
             pc.oniceconnectionstatechange = (event:any) => {
                 console.log('oniceconnectionstatechange:', event.target.iceConnectionState, event);
-                this.onIceStateChange('mss_' + event.target.iceConnectionState);
+                if(this.onIceStateChange) {
+                    this.onIceStateChange('mss_' + event.target.iceConnectionState);
+                }
                 if(event.target.iceConnectionState == 'disconnected'|| event.target.iceConnectionState == 'failed') {
                     console.log('Restart ice');
                     pc.restartIce();
@@ -162,15 +164,26 @@ export class WrtcClient {
     }
 
     async micCtrl(enable:boolean) {
-        this.webrtcPc.getTransceivers().forEach((transceiver:any) => {
+        this.webrtcPc.getTransceivers().forEach((transceiver:RTCRtpTransceiver) => {
             console.log('transceiver', JSON.stringify(transceiver));
             if(!transceiver.sender) return;
             if(!transceiver.sender.track) return;
             if (transceiver.sender.track.kind === 'audio') {
+                console.log('micCtrl done', enable);
                 transceiver.sender.track.enabled = enable;
-                // transceiver.direction = enable ? 'sendrecv' : 'inactive';
             }
         });
         return Promise.resolve();
     };
+    async setSpeakerOn(speakerOn:boolean) {
+        this.webrtcPc.getTransceivers().forEach((transceiver:RTCRtpTransceiver) => {
+            console.log('transceiver', JSON.stringify(transceiver));
+            if(!transceiver.receiver) return;
+            if(!transceiver.receiver.track) return;
+            if (transceiver.receiver.track.kind === 'audio') {
+                console.log('speakerOn done', speakerOn);
+                transceiver.receiver.track.enabled = speakerOn;
+            }
+        });
+    }
 }

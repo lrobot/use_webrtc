@@ -21,20 +21,14 @@ export class MqttClient {
                 console.log("mqtt_in_ ",topic, message.toString());
                 this.userOnMessageMap.get(username)!(message.toString());
             } else {
-                console.log("mqtt_in_no_user", username, message.toString());
+                console.log("mqtt_in_ no_user", username, message.toString());
             }
         });
         this.client.on("connect", () => {
             this.clientConnected = true;
             console.log("mqtt_connect ok", mqttUrl);
             for(const [username, messageCalback] of this.userOnMessageMap) {
-                this.client.subscribe(this.getUserTopic(username), (err) => {
-                    if (!err) {
-                        this.clientPublish(this.getUserTopic(username), JSON.stringify({ message: "Hello from mqtt" }));
-                    } else {
-                        console.log("mqtt_subscribe_err", this.getUserTopic(username), err);
-                    }
-                });
+                this._mqttSubscribe(username);
             }
           })
         this.client.on("error", (err) => {
@@ -46,13 +40,25 @@ export class MqttClient {
             console.log("mqtt_disconnect", mqttUrl);
         });
     }
+    _mqttSubscribe(username:string) {
+        this.client.subscribe(this.getUserTopic(username), (err) => {
+            if (!err) {
+                console.log("mqtt_subscribe ok", this.getUserTopic(username), err);
+                this.clientPublish(this.getUserTopic(username), JSON.stringify({ message: "Hello from mqtt" }));
+            } else {
+                console.log("mqtt_subscribe err", this.getUserTopic(username), err);
+            }
+        });
+    }
     addUser(username:string, messageCalback:(message:string)=>void) {
+        console.log("addUser", username);
         this.userOnMessageMap.set(username, messageCalback);
         if(this.clientConnected) {
-            this.client.subscribe(this.getUserTopic(username));
+            this._mqttSubscribe(username);
         }
     }
     removeUser(username:string) {
+        console.log("removeUser", username);
         this.userOnMessageMap.delete(username);
         if(this.clientConnected) {
             this.client.unsubscribe(this.getUserTopic(username));

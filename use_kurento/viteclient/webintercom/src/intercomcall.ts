@@ -13,13 +13,23 @@ export class IntercomAutoCall {
     callJoin(audioElem:HTMLAudioElement) {
         this.call.callJoin(audioElem);
     }
+    callRestart(audioElem:HTMLAudioElement) {
+        return  this.call.callRestart(audioElem);
+    }
     onStatusUpdate(fn: (status: string) => void) {
         this.call.onStatusUpdate(fn);
+    }
+    speechCtrl(speechOn:boolean) {
+        this.call.speechCtrl(false, speechOn);
+    }
+    setSpeakerOn(speakerOn:boolean) {
+        this.call.setSpeakerOn(speakerOn);
     }
     callLeave() {
         this.call.callLeave();
     }
     release() {
+        console.log("IntercomAutoCall release", this.call.logStr());
         this.call.release();
         this.callUser.release();
     }

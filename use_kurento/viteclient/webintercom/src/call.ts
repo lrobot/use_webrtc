@@ -20,8 +20,16 @@ export class Call {
     constructor(callUser:CallUser, meetingId:string) {
         this.callUser = callUser;
         this.meetingId = meetingId;
-        this.wrtcClient.setFnOnIceCandidate(this.onLocalIceCandidate.bind(this));
+        this.hookOn();
+    }
+    hookOff() {
+        this.callUser.removeCallReqFn(this.callId);
+        this.wrtcClient.setOnIceStateChange(()=>{});
+        this.wrtcClient.setFnOnIceCandidate(()=>{});
+    }
+    hookOn() {
         this.callUser.setCallIdReqFn(this.callId, this.onCallReq.bind(this));
+        this.wrtcClient.setFnOnIceCandidate(this.onLocalIceCandidate.bind(this));
         this.wrtcClient.setOnIceStateChange((state:string) => {
             this.statusUpdateFn(state);
         });
@@ -34,6 +42,13 @@ export class Call {
     }
     onStatusUpdate(fn: (status: string) => void) {
         this.statusUpdateFn = fn;
+    }
+    async callRestart(audioElem:HTMLAudioElement) {
+        this.hookOff();
+        this.wrtcClient = new WrtcClient();
+        this.callId = makeid();
+        this.hookOn();
+        await this.callJoin(audioElem);
     }
     async callJoin(audioElem:HTMLAudioElement) {
         const offerSdp = await this.wrtcClient.createOffer(audioElem);
@@ -87,6 +102,9 @@ export class Call {
         } else {
             console.log("intercomSpeechCtrl failed");
         }
+    }
+    async setSpeakerOn(speakerOn:boolean) {
+        this.wrtcClient.setSpeakerOn(speakerOn);
     }
     async callLeave() {
         console.log("callLeave");

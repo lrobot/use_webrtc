@@ -15,13 +15,18 @@ interface BatchCallOneCallProps {
 const BatchCallOneCall: React.FC<BatchCallOneCallProps> = ({
     username,
     meetingId,
-    // micOn
-    // cameraOn,
 }) => {
     const audioRef = useRef<HTMLAudioElement>(null);
     const intercomAutoCall = useMemo(() => new IntercomAutoCall(username, meetingId), [username, meetingId]);
     const [callStatus, setCallStatus] = useState<string>("");
+    const [micOn, setMicOn] = useState<boolean>(false);
+    const [speakerOn, setSpeakerOn] = useState<boolean>(true);
 
+    const callRestart = () => {
+        if (audioRef.current) {
+            intercomAutoCall.callRestart(audioRef.current);
+        }
+    }
     useEffect(() => {
         const updateInternalStatus = (status: string) => {
             setCallStatus(status);
@@ -32,21 +37,26 @@ const BatchCallOneCall: React.FC<BatchCallOneCallProps> = ({
         }
         return () => {
             //some cleanup
-            intercomAutoCall.release();
+            // intercomAutoCall.release();
         };
     }, []);
-
-    // useEffect(() => {
-    //     if (audioRef.current) {
-    //         intercomAutoCall.callJoin(audioRef.current);
-    //     }
-    // }, []);
+    useEffect(() => {
+        intercomAutoCall.speechCtrl(micOn);
+    }, [micOn]);
+    useEffect(() => {
+        intercomAutoCall.setSpeakerOn(speakerOn);
+    }, [speakerOn]);
 
     return (
-        <div>
-            <div>username:{username}</div>
-            <div>Call Status:{callStatus}</div>
-            <audio ref={audioRef} src="audio_file_url" controls />
+        <div style={{ border: '1px solid black' }}>
+            <div style={{ display: 'inline-block' }}>user:{username}</div>&nbsp;&nbsp;&nbsp;&nbsp;
+            <div style={{ display: 'inline-block' }}>
+            micOn:<input type="checkbox" checked={micOn} onChange={(e) => setMicOn(e.target.checked)}/>&nbsp;&nbsp;&nbsp;&nbsp;
+            speakerOn:<input type="checkbox" checked={speakerOn} onChange={(e) => setSpeakerOn(e.target.checked)} />&nbsp;&nbsp;&nbsp;&nbsp;
+            <a href="#" onClick={() => callRestart()}>Restart</a>&nbsp;&nbsp;&nbsp;&nbsp;
+            </div>
+            <div style={{ display: 'inline-block' }}>status:{callStatus}</div>&nbsp;&nbsp;
+            <div><audio ref={audioRef} src="audio_file_url" controls /> </div>
         </div>
     );
 };

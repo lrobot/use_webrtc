@@ -3,7 +3,7 @@ import { MqttClient } from './mqtt';
 
 import * as constutil from './constutil';
 
-const TopicMeetingService = "meeting/service";
+const TopicMeetingService = "meeting/service1";
 
 export interface CallReq {
     type : string;
@@ -57,6 +57,9 @@ export class CallUser {
         console.log(this.logStr(), "onMessage", message);
         const jsonMsg = JSON.parse(message);
         if(jsonMsg.type=="response"){
+            if(jsonMsg.needAck) {
+                this.sendAck(jsonMsg.reqId);
+            }
             this.onResponse(jsonMsg as CallResp);
         } else {
             this.onRequest(jsonMsg as CallReq);
