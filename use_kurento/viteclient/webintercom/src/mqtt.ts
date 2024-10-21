@@ -6,11 +6,12 @@ import { makeid } from "./util";
 // export const mqttUrl = 'wss://mqtt.zhddkuma/mq/mqtt';
 export const mqttUrl = 'wss://yjdd.lm-t.cn/mq/mqtt';
 // export const mqttUrl = 'wss://srv.rbat.tk:8081';
-
+const TopicMeetingService = "meeting/service1";
 
 export class MqttClient {
     client: mqtt.MqttClient;
     clientConnected = false;
+    meetingServiceTopic = TopicMeetingService;
     userOnMessageMap: Map<string, (message:string)=>void> = new Map();
     constructor() {
         console.log("mqttUrl", mqttUrl);
@@ -39,6 +40,9 @@ export class MqttClient {
             this.clientConnected = false;
             console.log("mqtt_disconnect", mqttUrl);
         });
+    }
+    setMeetingServiceTopic(topic:string) {
+        this.meetingServiceTopic = topic;
     }
     _mqttSubscribe(username:string) {
         this.client.subscribe(this.getUserTopic(username), (err) => {

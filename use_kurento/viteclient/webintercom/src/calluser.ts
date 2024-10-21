@@ -3,7 +3,6 @@ import { MqttClient } from './mqtt';
 
 import * as constutil from './constutil';
 
-const TopicMeetingService = "meeting/service1";
 
 export interface CallReq {
     type : string;
@@ -115,7 +114,7 @@ export class CallUser {
         });
     }
     sendResp(reqId: string, forType:string, code: number, codeMsg: string) {
-        this.mqttclient.clientPublish(TopicMeetingService, JSON.stringify({
+        this.mqttclient.clientPublish(this.mqttclient.meetingServiceTopic, JSON.stringify({
             type: "response",
             forType,
             reqId,
@@ -124,7 +123,7 @@ export class CallUser {
         }));
     }
     sendAck(reqId: string) {
-        this.clientPublish(TopicMeetingService, JSON.stringify({
+        this.clientPublish(this.mqttclient.meetingServiceTopic, JSON.stringify({
             type: "ack",
             reqId
         }));
@@ -139,9 +138,9 @@ export class CallUser {
         }));
     }
     sendReq(req: CallReq):Promise<any> {
-        this.clientPublish(TopicMeetingService, JSON.stringify(req));
+        this.clientPublish(this.mqttclient.meetingServiceTopic, JSON.stringify(req));
         return new Promise((resolve, reject) => {
-            this.reqTransMap.set(req.reqId, {topic:TopicMeetingService, req, resolve, reject});
+            this.reqTransMap.set(req.reqId, {topic:this.mqttclient.meetingServiceTopic, req, resolve, reject});
             setTimeout(() => {
                 const reqTrans = this.reqTransMap.get(req.reqId);
                 if(reqTrans) {
@@ -152,7 +151,7 @@ export class CallUser {
             setTimeout(() => {
                 const reqTrans = this.reqTransMap.get(req.reqId);
                 if(reqTrans) {
-                    this.clientPublish(TopicMeetingService, JSON.stringify(req));
+                    this.clientPublish(this.mqttclient.meetingServiceTopic, JSON.stringify(req));
                 }
             }, 3*1000);
         });
