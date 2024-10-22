@@ -1,7 +1,7 @@
 
 
 
-import freeice from 'freeice'
+// import freeice from 'freeice'
 import { appConfig } from './appconfig';
 
 export class WrtcClient {
@@ -10,7 +10,7 @@ export class WrtcClient {
     fnOnIceCandidate_: any;
     setAnswerDone = false;
     iceCandidateCache: any[] = [];
-    onIceStateChange: (state:string) => void = (state: string) => {};
+    onIceStateChange: (state:string) => void = () => {};
     onError_(...args: any[]) {
         console.error(args);
     }

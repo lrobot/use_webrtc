@@ -7,7 +7,7 @@ export class IntercomAutoCall {
     callUser:CallUser;
     call: Call;
     meetingId: string;
-    fnOnStatusUpdate: (status: string) => void = (status: string) => {};
+    fnOnStatusUpdate: (status: string) => void = () => {};
     constructor(username:string, meetingId:string) {
         this.meetingId = meetingId;
         this.callUser = new CallUser(username, mqttClient);

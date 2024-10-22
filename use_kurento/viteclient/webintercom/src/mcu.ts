@@ -6,19 +6,11 @@
 // let client = mqtt.connect("mqtt://test.mosquitto.org"); // create a client
 
 
-import { Call }	from "./call";
 import { IntercomAutoCall } from "./intercomcall";
 
 var videoInput: HTMLElement|null;
 var videoOutput: HTMLElement|null;
 var audioElem: HTMLAudioElement|null;
-
-const I_CAN_START = 0;
-const I_CAN_STOP = 1;
-const I_AM_STARTING = 2;
-
-var state = I_CAN_START;
-
 
 
 
@@ -32,7 +24,7 @@ window.onload = function() {
 }
 
 window.onbeforeunload = ()=>{
-	console.log('Window closed ...');
+	console.log('Window closed ...', videoInput, videoOutput);
 };
 
 var call:IntercomAutoCall|null = null;
@@ -56,11 +48,11 @@ export function IntercomLeave() {
 
 export function speechCtrlOn() {
 	if(call) {
-		call.speechCtrl(false, true);
+		call.speechCtrl(true);
 	}
 }
 export function speechCtrlOff() {
 	if(call) {
-		call.speechCtrl(false, false);
+		call.speechCtrl(false);
 	}
 }

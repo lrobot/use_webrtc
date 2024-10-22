@@ -17,7 +17,7 @@ export class Call {
     meetingId: string;
     callId: string = "";
     callJoined = false;
-    statusUpdateFn: (status: string) => void = (status: string) => {};
+    statusUpdateFn: (status: string) => void = () => {};
     constructor(callUser:CallUser, meetingId:string) {
         this.callUser = callUser;
         this.meetingId = meetingId;

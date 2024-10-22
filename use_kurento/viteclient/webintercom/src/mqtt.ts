@@ -2,7 +2,6 @@
 
 
 import mqtt from "mqtt"; // import namespace "mqtt"
-import { makeid } from "./util";
 import { appConfig } from "./appconfig";
 
 
@@ -24,7 +23,7 @@ export class MqttClient {
         this.client.on("connect", () => {
             this.clientConnected = true;
             console.log("mqtt_connect ok", appConfig.mqttUrl);
-            for(const [username, messageCallback] of this.userOnMessageMap) {
+            for(const [username,_] of this.userOnMessageMap) {
                 this._mqttSubscribe(username);
             }
           })
