@@ -6,18 +6,24 @@ import { mqttClient } from "./mqtt";
 export class IntercomAutoCall {
     callUser:CallUser;
     call: Call;
+    meetingId: string;
+    fnOnStatusUpdate: (status: string) => void = (status: string) => {};
     constructor(username:string, meetingId:string) {
+        this.meetingId = meetingId;
         this.callUser = new CallUser(username, mqttClient);
-        this.call = new Call(this.callUser, meetingId);
+        this.call = new Call(this.callUser, this.meetingId);
+        this.callRecreate();
     }
-    callJoin(audioElem:HTMLAudioElement) {
-        this.call.callJoin(audioElem);
+    async callJoin(audioElem:HTMLAudioElement) {
+        await this.call.callJoin(audioElem);
     }
-    callRestart(audioElem:HTMLAudioElement) {
-        return  this.call.callRestart(audioElem);
+    async callRestart(audioElem:HTMLAudioElement) {
+        await this.callRecreate();
+        return await this.callJoin(audioElem);
     }
     onStatusUpdate(fn: (status: string) => void) {
-        this.call.onStatusUpdate(fn);
+        this.fnOnStatusUpdate = fn;
+        this.call.onStatusUpdate(this.fnOnStatusUpdate);
     }
     speechCtrl(speechOn:boolean) {
         this.call.speechCtrl(false, speechOn);
@@ -25,12 +31,14 @@ export class IntercomAutoCall {
     setSpeakerOn(speakerOn:boolean) {
         this.call.setSpeakerOn(speakerOn);
     }
-    callLeave() {
-        this.call.callLeave();
+    async callLeave() {
+        await this.call.callLeave();
     }
-    release() {
-        console.log("IntercomAutoCall release", this.call.logStr());
-        this.call.release();
-        this.callUser.release();
+    async callRecreate() {
+        console.log("callRecreate", this.call.logStr());
+        await this.call.release();
+        this.call = new Call(this.callUser, this.meetingId);
+        this.call.onStatusUpdate(this.fnOnStatusUpdate);
+        // this.callUser.release();
     }
 }

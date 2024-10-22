@@ -44,7 +44,7 @@ export class CallUser {
         this.mqttclient.addUser(username, this.onMessage.bind(this));
     }
     release() {
-        this.mqttclient.removeUser(this.username);
+        // this.mqttclient.removeUser(this.username);
     }
     logStr() {
         return `CallUser(${this.username})`;
@@ -55,15 +55,18 @@ export class CallUser {
     onMessage(message:string) {
         console.log(this.logStr(), "onMessage", message);
         const jsonMsg = JSON.parse(message);
-        if(jsonMsg.type=="response"){
-            if(jsonMsg.needAck) {
-                this.sendAck(jsonMsg.reqId);
-            }
-            this.onResponse(jsonMsg as CallResp);
+        if(jsonMsg.type) {
+            if(jsonMsg.type=="response"){
+                if(jsonMsg.needAck) {
+                    this.sendAck(jsonMsg.reqId);
+                }
+                this.onResponse(jsonMsg as CallResp);
+            } else {
+                this.onRequest(jsonMsg as CallReq);
+            }    
         } else {
-            this.onRequest(jsonMsg as CallReq);
+            console.log(this.logStr(), "on no type Message", message);
         }
-
     }
     setCallIdReqFn(callId:string, fn:(req: CallReq)=>void) {
         this.callIdReqFnMap.set(callId, fn);

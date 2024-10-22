@@ -15,7 +15,8 @@ export class Call {
     callUser:CallUser;
     // wrtcClient = new KurentoClient();
     meetingId: string;
-    callId = makeid();
+    callId: string = "";
+    callJoined = false;
     statusUpdateFn: (status: string) => void = (status: string) => {};
     constructor(callUser:CallUser, meetingId:string) {
         this.callUser = callUser;
@@ -28,14 +29,18 @@ export class Call {
         this.wrtcClient.setFnOnIceCandidate(()=>{});
     }
     hookOn() {
+        this.callId = makeid();
         this.callUser.setCallIdReqFn(this.callId, this.onCallReq.bind(this));
         this.wrtcClient.setFnOnIceCandidate(this.onLocalIceCandidate.bind(this));
         this.wrtcClient.setOnIceStateChange((state:string) => {
             this.statusUpdateFn(state);
         });
     }
-    release() {
-        this.callUser.removeCallReqFn(this.callId);
+    async release() {
+        this.hookOff();
+        if(this.callJoined) {
+            await this.callLeave();
+        }
     }
     logStr() {
         return `Call(${this.callUser.logStr()}), meetingId:${this.meetingId}, callId:${this.callId}`;
@@ -46,7 +51,6 @@ export class Call {
     async callRestart(audioElem:HTMLAudioElement) {
         this.hookOff();
         this.wrtcClient = new WrtcClient();
-        this.callId = makeid();
         this.hookOn();
         await this.callJoin(audioElem);
     }
@@ -54,6 +58,7 @@ export class Call {
         const offerSdp = await this.wrtcClient.createOffer(audioElem);
         this.statusUpdateFn("calling");
         console.log("callJoin:Offer", this.logStr(), offerSdp);
+        this.callJoined = true;
         const response = await this.callUser.sendReq({
             reqId: makeid(),
             type: "callJoin",
