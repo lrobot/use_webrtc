@@ -9,14 +9,14 @@ import { appConfig } from './appconfig'
 
 function App() {
     const [usernamePrefix, setUsernamePrefix] = useState('test')
-    const [meetingServiceTopic, setMeetingServiceTopic] = useState(appConfig.topicMeetingService)
+    const [meetingServiceTopic, setMeetingServiceTopic] = useState(appConfig.fixedMeetingTopic)
     const [meetingId, setMeetingId] = useState('1234567890')
     const [count, setCount] = useState(1)
     const [testOn, setTestOn] = useState(false)
 
     const handleMeetingServiceTopicChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setMeetingServiceTopic(event.target.value)
-        appConfig.topicMeetingService = meetingServiceTopic
+        appConfig.topicMeetingService = event.target.value
     }
 
     const handleMeetingIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
