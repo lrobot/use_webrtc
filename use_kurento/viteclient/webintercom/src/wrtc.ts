@@ -2,6 +2,7 @@
 
 
 import freeice from 'freeice'
+import { appConfig } from './appconfig';
 
 export class WrtcClient {
     offerGenDone = false;
@@ -14,7 +15,7 @@ export class WrtcClient {
         console.error(args);
     }
     onIceCandidate(candidate:any) {
-        console.log('Local candidat out' + JSON.stringify(candidate));
+        // console.log('Local candidat out' + JSON.stringify(candidate));
         if(this.fnOnIceCandidate_) {
             this.fnOnIceCandidate_(candidate)
         }
@@ -27,7 +28,7 @@ export class WrtcClient {
     }
 
     AddIceCandidate(candidate:any) {
-        console.log('Remote candidate add' + JSON.stringify(candidate));
+        // console.log('Remote candidate add:' + JSON.stringify(candidate));
         try {
             if(!this.setAnswerDone) {
                 this.iceCandidateCache.push(candidate);
@@ -47,7 +48,9 @@ export class WrtcClient {
 
 
     constructor() {
-        console.log('wrtc created');
+        if(appConfig.logCreate) {
+            console.log('wrtc created');
+        }
         this.webrtcPc = new RTCPeerConnection({
             iceServers:  [
             // { urls: 'stun:stun.l.google.com:19302' },
@@ -165,11 +168,11 @@ export class WrtcClient {
 
     async micCtrl(enable:boolean) {
         this.webrtcPc.getTransceivers().forEach((transceiver:RTCRtpTransceiver) => {
-            console.log('transceiver', JSON.stringify(transceiver));
+            // console.log('transceiver', JSON.stringify(transceiver));
             if(!transceiver.sender) return;
             if(!transceiver.sender.track) return;
             if (transceiver.sender.track.kind === 'audio') {
-                console.log('micCtrl done', enable);
+                // console.log('micCtrl done', enable);
                 transceiver.sender.track.enabled = enable;
             }
         });
@@ -177,11 +180,11 @@ export class WrtcClient {
     };
     async setSpeakerOn(speakerOn:boolean) {
         this.webrtcPc.getTransceivers().forEach((transceiver:RTCRtpTransceiver) => {
-            console.log('transceiver', JSON.stringify(transceiver));
+            // console.log('transceiver', JSON.stringify(transceiver));
             if(!transceiver.receiver) return;
             if(!transceiver.receiver.track) return;
             if (transceiver.receiver.track.kind === 'audio') {
-                console.log('speakerOn done', speakerOn);
+                // console.log('speakerOn done', speakerOn);
                 transceiver.receiver.track.enabled = speakerOn;
             }
         });

@@ -4,6 +4,7 @@
 // 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { IntercomAutoCall } from './intercomcall';
+import { appConfig } from './appconfig';
 
 interface BatchCallOneCallProps {
     username: string;
@@ -36,7 +37,9 @@ const BatchCallOneCall: React.FC<BatchCallOneCallProps> = ({
         intercomAutoCall.setSpeakerOn(speakerOn);
     };
     useEffect(() => {
-        console.log('useEffect callJoin');
+        if(appConfig.logCreate) {
+            console.log('useEffect callJoin');
+        }
         (async () => {
             const updateInternalStatus = (status: string) => {
                 setCallStatus(status);
@@ -47,7 +50,9 @@ const BatchCallOneCall: React.FC<BatchCallOneCallProps> = ({
             }
         })();
         return () => {
-            console.log('useEffect callJoin cleanup');
+            if(appConfig.logCreate) {
+                console.log('useEffect callJoin cleanup');
+            }
             //some cleanup
             (async ()=>{
                 intercomAutoCall.callRecreate();
@@ -55,16 +60,24 @@ const BatchCallOneCall: React.FC<BatchCallOneCallProps> = ({
         };
     }, []);
     useEffect(() => {
-        console.log('useEffect micOn', micOn);
+        if(appConfig.logCreate) {
+            console.log('useEffect micOn', micOn);
+        }
         return ()=>{
-            console.log('useEffect micOn cleanup', micOn);
+            if(appConfig.logCreate) {
+                console.log('useEffect micOn cleanup', micOn);
+            }
         }
     }, [micOn]);
 
     useEffect(() => {
-        console.log('useEffect speakerOn', speakerOn);
+        if(appConfig.logCreate) {
+            console.log('useEffect speakerOn', speakerOn);
+        }
         return ()=>{
-            console.log('useEffect speakerOn cleanup', speakerOn);
+            if(appConfig.logCreate){
+                console.log('useEffect speakerOn cleanup', speakerOn);
+            }
         }
     }, [speakerOn]);
 

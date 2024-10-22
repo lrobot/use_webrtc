@@ -78,7 +78,6 @@ export class Call {
     }
 
     onCallReq(req: CallReq) {
-        console.log("onCallReq", req);
         switch(req.type) {
             case "callIce":
                 this.wrtcClient.AddIceCandidate((req as any).ice);
@@ -131,14 +130,14 @@ export class Call {
     }
 
     async onLocalIceCandidate(candidate:any) {
-        console.log("local candidate", candidate);
+        // console.log("local candidate", candidate);
         const candidateJson = JSON.parse(JSON.stringify(candidate));
         if(!candidateJson) {
             console.error("candidateJson is null");
             return;
         }
         candidateJson.sdp = candidateJson.candidate;
-        console.log("local candidateJson", candidateJson);
+        // console.log("local candidateJson", candidateJson);
         try {
             await this.callUser.sendReq({
                 reqId: makeid(),

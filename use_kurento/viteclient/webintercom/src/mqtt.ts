@@ -3,23 +3,19 @@
 
 import mqtt from "mqtt"; // import namespace "mqtt"
 import { makeid } from "./util";
-// export const mqttUrl = 'wss://mqtt.zhddkuma/mq/mqtt';
-export const mqttUrl = 'wss://yjdd.lm-t.cn/mq/mqtt';
-// export const mqttUrl = 'wss://srv.rbat.tk:8081';
-const TopicMeetingService = "meeting/service1";
+import { appConfig } from "./appconfig";
+
 
 export class MqttClient {
     client: mqtt.MqttClient;
     clientConnected = false;
-    meetingServiceTopic = TopicMeetingService;
     userOnMessageMap: Map<string, (message:string)=>void> = new Map();
     constructor() {
-        console.log("mqttUrl", mqttUrl);
-        this.client = mqtt.connect(mqttUrl); // create a client
+        console.log("mqttUrl", appConfig.mqttUrl);
+        this.client = mqtt.connect(appConfig.mqttUrl); // create a client
         this.client.on("message", (topic, message) => {
             const username = topic.replace("user/", "");
             if(this.userOnMessageMap.has(username)){
-                console.log("mqtt_in_ ",topic, message.toString());
                 this.userOnMessageMap.get(username)!(message.toString());
             } else {
                 console.log("mqtt_in_ no_user", username, message.toString());
@@ -27,28 +23,25 @@ export class MqttClient {
         });
         this.client.on("connect", () => {
             this.clientConnected = true;
-            console.log("mqtt_connect ok", mqttUrl);
-            for(const [username, messageCalback] of this.userOnMessageMap) {
+            console.log("mqtt_connect ok", appConfig.mqttUrl);
+            for(const [username, messageCallback] of this.userOnMessageMap) {
                 this._mqttSubscribe(username);
             }
           })
         this.client.on("error", (err) => {
             this.clientConnected = false;
-            console.log("mqtt_error", mqttUrl, err);
+            console.log("mqtt_error", appConfig.mqttUrl, err);
         });
         this.client.on("disconnect", () => {
             this.clientConnected = false;
-            console.log("mqtt_disconnect", mqttUrl);
+            console.log("mqtt_disconnect", appConfig.mqttUrl);
         });
-    }
-    setMeetingServiceTopic(topic:string) {
-        this.meetingServiceTopic = topic;
     }
     _mqttSubscribe(username:string) {
         this.client.subscribe(this.getUserTopic(username), (err) => {
             if (!err) {
                 console.log("mqtt_subscribe ok", this.getUserTopic(username), err);
-                this.clientPublish(this.getUserTopic(username), JSON.stringify({ message: "Hello from mqtt" }));
+                this.publishJson(this.getUserTopic(username), { message: "Hello from mqtt" });
             } else {
                 console.log("mqtt_subscribe err", this.getUserTopic(username), err);
             }
@@ -68,15 +61,20 @@ export class MqttClient {
             this.client.unsubscribe(this.getUserTopic(username));
         }
     }
-    clientPublish(topic:string, message:string) {
-        console.log("mqtt_out_", topic, message);
-        this.client.publish(topic, message);
+    publishJson(topic:string, message:any) {
+        if(appConfig.logMqtt) {
+            if(!appConfig.logIce&&(message.type=="callIce"||message.forType=="callIce"||message.type=="callVideoIce"||message.forType=="callVideoIce")) {
+                //do not log ice
+            } else {
+                console.log("mqtt_out_", topic, message);
+            }
+        }
+        this.client.publish(topic, JSON.stringify(message));
     }
     getUserTopic(username:string) {
         return "user/" + username;
     }
 }
-
 
 
 export const mqttClient = new MqttClient();

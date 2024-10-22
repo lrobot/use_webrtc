@@ -3,6 +3,7 @@ import { MqttClient } from './mqtt';
 
 import * as constutil from './constutil';
 
+import { appConfig } from './appconfig';
 
 export interface CallReq {
     type : string;
@@ -49,23 +50,33 @@ export class CallUser {
     logStr() {
         return `CallUser(${this.username})`;
     }
-    clientPublish(topic:string, message:string) {
-        this.mqttclient.clientPublish(topic, message);
+    _publishJson(topic:string, message:any) {
+        this.mqttclient.publishJson(topic, message);
     }
     onMessage(message:string) {
-        console.log(this.logStr(), "onMessage", message);
-        const jsonMsg = JSON.parse(message);
-        if(jsonMsg.type) {
-            if(jsonMsg.type=="response"){
-                if(jsonMsg.needAck) {
-                    this.sendAck(jsonMsg.reqId);
-                }
-                this.onResponse(jsonMsg as CallResp);
+        try {
+            const jsonMsg = JSON.parse(message);            
+            if(!appConfig.logIce&&(jsonMsg.type=="callIce"||jsonMsg.forType=="callIce"||jsonMsg.type=="callVideoIce"||jsonMsg.forType=="callVideoIce")) {
+                // no log ice
             } else {
-                this.onRequest(jsonMsg as CallReq);
-            }    
-        } else {
-            console.log(this.logStr(), "on no type Message", message);
+                if(appConfig.logMqtt) {
+                    console.log("mqtt_in_ ",this.username, message);
+                }
+            }
+            if(jsonMsg.type) {
+                if(jsonMsg.type=="response"){
+                    if(jsonMsg.needAck) {
+                        this.sendAck(jsonMsg.reqId);
+                    }
+                    this.onResponse(jsonMsg as CallResp);
+                } else {
+                    this.onRequest(jsonMsg as CallReq);
+                }    
+            } else {
+                console.log(this.logStr(), "on no type Message", message);
+            }
+        } catch (error) {
+            console.error(this.logStr(), "onMessage", error, message);   
         }
     }
     setCallIdReqFn(callId:string, fn:(req: CallReq)=>void) {
@@ -98,7 +109,7 @@ export class CallUser {
 
     sendReqToUser(username:string, req: CallReq) {
         const userTopic = constutil.getUserTopic(username);
-        this.clientPublish(userTopic, JSON.stringify(req));
+        this._publishJson(userTopic, req);
         return new Promise((resolve, reject) => {
             this.reqTransMap.set(req.reqId, {topic:userTopic ,req, resolve, reject});
             setTimeout(() => {
@@ -111,39 +122,39 @@ export class CallUser {
             setTimeout(() => {
                 const reqTrans = this.reqTransMap.get(req.reqId);
                 if(reqTrans) {
-                    this.clientPublish(userTopic, JSON.stringify(req));
+                    this._publishJson(userTopic, req);
                 }
             }, 3*1000);
         });
     }
     sendResp(reqId: string, forType:string, code: number, codeMsg: string) {
-        this.mqttclient.clientPublish(this.mqttclient.meetingServiceTopic, JSON.stringify({
+        this._publishJson(appConfig.topicMeetingService, {
             type: "response",
             forType,
             reqId,
             code,
             codeMsg
-        }));
+        });
     }
     sendAck(reqId: string) {
-        this.clientPublish(this.mqttclient.meetingServiceTopic, JSON.stringify({
+        this._publishJson(appConfig.topicMeetingService, {
             type: "ack",
             reqId
-        }));
+        });
     }
     sendRespToUser(username:string, reqId: string, forType:string, code: number, codeMsg: string) {
-        this.clientPublish(constutil.getUserTopic(username), JSON.stringify({
+        this._publishJson(constutil.getUserTopic(username), {
             type: "response",
             forType,
             reqId,
             code,
             codeMsg
-        }));
+        });
     }
     sendReq(req: CallReq):Promise<any> {
-        this.clientPublish(this.mqttclient.meetingServiceTopic, JSON.stringify(req));
+        this._publishJson(appConfig.topicMeetingService, req);
         return new Promise((resolve, reject) => {
-            this.reqTransMap.set(req.reqId, {topic:this.mqttclient.meetingServiceTopic, req, resolve, reject});
+            this.reqTransMap.set(req.reqId, {topic:appConfig.topicMeetingService, req, resolve, reject});
             setTimeout(() => {
                 const reqTrans = this.reqTransMap.get(req.reqId);
                 if(reqTrans) {
@@ -154,7 +165,7 @@ export class CallUser {
             setTimeout(() => {
                 const reqTrans = this.reqTransMap.get(req.reqId);
                 if(reqTrans) {
-                    this.clientPublish(this.mqttclient.meetingServiceTopic, JSON.stringify(req));
+                    this._publishJson(appConfig.topicMeetingService, req);
                 }
             }, 3*1000);
         });

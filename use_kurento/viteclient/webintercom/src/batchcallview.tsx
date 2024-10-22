@@ -4,17 +4,19 @@ import viteLogo from '/vite.svg'
 // import './App.css'
 import { mqttClient } from './mqtt'
 import BatchCallOneCall from './batchcallonecall'
+import { appConfig } from './appconfig'
 
 
 function App() {
     const [usernamePrefix, setUsernamePrefix] = useState('test')
-    const [meetingServiceTopic, setMeetingServiceTopic] = useState('meeting/service')
+    const [meetingServiceTopic, setMeetingServiceTopic] = useState(appConfig.topicMeetingService)
     const [meetingId, setMeetingId] = useState('1234567890')
     const [count, setCount] = useState(1)
     const [testOn, setTestOn] = useState(false)
 
     const handleMeetingServiceTopicChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setMeetingServiceTopic(event.target.value)
+        appConfig.topicMeetingService = meetingServiceTopic
     }
 
     const handleMeetingIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -30,7 +32,6 @@ function App() {
     }
 
     const handleStartClick = () => {
-        mqttClient.setMeetingServiceTopic(meetingServiceTopic)
         setTestOn(!testOn)
     }
 
