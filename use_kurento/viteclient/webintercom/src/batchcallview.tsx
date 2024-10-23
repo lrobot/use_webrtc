@@ -6,7 +6,6 @@ import BatchCallOneCall from './batchcallonecall'
 import { appConfig } from './appconfig'
 import { md5 } from 'js-md5'
 import { mqttClient } from './mqtt'
-import mqtt from 'mqtt'
 
 const usagePassword_md5_md5 = "d7364e00ff0d158a2819d0604f3b1f98"
 
