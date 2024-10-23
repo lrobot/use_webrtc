@@ -1,12 +1,46 @@
 import * as constdomain from "./constdomain";
-import constutil from "./constutil";
+import constutil, { PromiseFifoQueue } from "./constutil";
 import { CallGroup, CallMember, CallServiceApi } from "./call_base";
 import * as meetingMediaApi from './mediaapi';
 
 
+
+
+class VideoMediaPeer {
+  endpoint:meetingMediaApi.MediaEndpoint|null = null;
+  queue: PromiseFifoQueue = new PromiseFifoQueue();
+  peerId: string;
+  userData: {[key: string]: string} = {};
+  cachedSdpAnswer: string = '';
+  constructor(peerId:string) {
+  this.peerId = peerId;
+  }
+  public async runInQueue(promise: ()=>Promise<any>) {
+    this.queue.enqueue(promise);
+  }
+  setEndpoint(endpoint: meetingMediaApi.MediaEndpoint) {
+    if(this.endpoint) {
+      this.endpoint.release();
+    }
+    this.endpoint = endpoint;
+  }
+  release() {
+    if(this.endpoint) {
+      this.endpoint.release();
+      this.endpoint = null;
+    }
+  }
+  setUserData(key: string, value: string) {
+    this.userData[key] = value;
+  }
+  getUserData(key: string): string {
+    return this.userData[key];
+  }
+}
+
 export class MeetingMemeber extends CallMember {
-    pushEndpoint: meetingMediaApi.MediaEndpoint|null = null;
-    pullEndpoints: Map<string, meetingMediaApi.MediaEndpoint> = new Map<string, meetingMediaApi.MediaEndpoint>();
+    pushPeer: VideoMediaPeer|null = null;
+    pullPeers: Map<string, VideoMediaPeer> = new Map<string, VideoMediaPeer>();
     meetingGroup: MeetingGroup;
     constructor(callGroup: CallGroup, msg:any, mediaEndpoint: meetingMediaApi.MediaEndpoint) {
       super(callGroup, msg, mediaEndpoint);
@@ -14,19 +48,19 @@ export class MeetingMemeber extends CallMember {
     }
     async videoMediaSync() {
       if(!this.meetingGroup.video) {
-        if(this.pushEndpoint) {
+        if(this.pushPeer) {
           try {
-            this.pushEndpoint.release();
+            this.pushPeer.release();
           } catch (error) {
-            console.error('release pushEndpoint error', error);
+            console.error('release pushPeer error', error);
           }
-          this.pushEndpoint = null;
+          this.pushPeer = null;
         }
-        const tmpEndpoints = this.pullEndpoints;
-        this.pullEndpoints = new Map<string, meetingMediaApi.MediaEndpoint>();
-        for (let [userId, endpoint] of tmpEndpoints) {
+        const tmpPullPeers = this.pullPeers;
+        this.pullPeers = new Map<string, VideoMediaPeer>();
+        for (let [_, pullPeer] of tmpPullPeers) {
           try {
-            endpoint.release();
+            pullPeer.release();
           } catch (error) {
             console.error('release pullEndpoint error 2', error);
             
@@ -37,10 +71,10 @@ export class MeetingMemeber extends CallMember {
     public async handleMessage(meetingMessage:any) {
       switch (meetingMessage.type) {
         case constdomain.kMsgMediaPushVideo:
-          this.handleMediaPushMedia(meetingMessage);
+          await this.handleMediaPushMedia(meetingMessage);
           break;
         case constdomain.kMsgMediaPullVideo:
-          this.handleMediaPullMedia(meetingMessage);
+          await this.handleMediaPullMedia(meetingMessage);
           break;
         case constdomain.kMsgMediaVideoIce:
           await this.handleMediaVideoIce(meetingMessage);
@@ -85,90 +119,118 @@ export class MeetingMemeber extends CallMember {
       return endpoint;
     }
     public async handleMediaPushMedia(meetingMessage: constdomain.call_pull_video) {
-      const reqId = meetingMessage.reqId;
-      if(this.pushEndpoint){
-        const cacheReqId = this.pushEndpoint.getUserData('reqId');
-        if(cacheReqId === reqId) {
-          await this.sendMediaReply(meetingMessage, 200, 'ok cached', this.pushEndpoint.getSdpAnswer());
-          return;
-        } else {
-          try {
-            this.pushEndpoint.release();
-          } catch (error) {
-            console.error('release pushEndpoint error', error);
-          }
-          this.pushEndpoint = null;  
-        }
+      if(!this.pushPeer){
+        this.pushPeer = new VideoMediaPeer(this.userId);
       }
-      this.pushEndpoint = await this.createVideoEndpointForUserId(this.userId);
-      this.pushEndpoint.setUserData('reqId', reqId);
-      const sdpAnswer = await this.pushEndpoint.processOffer(meetingMessage.sdpOffer);
-      await this.sendMediaReply(meetingMessage, 200, 'ok', sdpAnswer);
-      for(let [userId, member] of this.callGroup.members) {
-        const meetingMember = member as MeetingMemeber;
-        const pullEndpoint = meetingMember.pullEndpoints.get(this.userId);
-        if(pullEndpoint) {
-          this.pushEndpoint.connectSendTo(pullEndpoint, 'VIDEO');
+      this.pushPeer.runInQueue(async () => {
+        await this._handleMediaPushMedia(meetingMessage);
+      });
+    }
+    public async _handleMediaPushMedia(meetingMessage: constdomain.call_pull_video) {
+      if(!this.pushPeer) return;
+      const reqId = meetingMessage.reqId;
+      const cacheReqId = this.pushPeer.getUserData('reqId');
+      if(cacheReqId === reqId && this.pushPeer.cachedSdpAnswer) {
+        await this.sendMediaReply(meetingMessage, 200, 'ok cached', this.pushPeer.cachedSdpAnswer);
+        return;
+      }
+      let toReleaseEndpoint = null;
+      try {
+        const newEndpoint = await this.createVideoEndpointForUserId(this.userId);
+        toReleaseEndpoint = newEndpoint;
+        const sdpAnswer = await newEndpoint.processOffer(meetingMessage.sdpOffer);
+        this.pushPeer.setEndpoint(newEndpoint);
+        this.pushPeer.setUserData('reqId', reqId);
+        this.pushPeer.cachedSdpAnswer = sdpAnswer;
+
+        for(let [userId, member] of this.callGroup.members) {
+          const meetingMember = member as MeetingMemeber;
+          const pullPeer = meetingMember.pullPeers.get(this.userId);
+          if(pullPeer && pullPeer.endpoint) {
+            newEndpoint.connectSendTo(pullPeer.endpoint, 'VIDEO');
+          }
+        }
+        await this.sendMediaReply(meetingMessage, 200, 'ok', sdpAnswer);
+      } catch (error) {
+        console.error('release pushPeer error', error);
+        if(toReleaseEndpoint) {
+          toReleaseEndpoint.release();
         }
       }
     }
     public async handleMediaPullMedia(meetingMessage: constdomain.call_pull_video) {
+      var pullPeer = this.pullPeers.get(meetingMessage.peerId);
+      if(!pullPeer) {
+        pullPeer = new VideoMediaPeer(meetingMessage.peerId);
+        this.pullPeers.set(meetingMessage.peerId, pullPeer);
+      }
+      if(pullPeer) {
+        pullPeer.runInQueue(async () => {
+          if(!pullPeer) return;
+          await this._handleMediaPullMedia(pullPeer, meetingMessage);
+        });  
+      }
+    }
+
+    public async _handleMediaPullMedia(pullPeer:VideoMediaPeer, meetingMessage: constdomain.call_pull_video) {
       const reqId = meetingMessage.reqId;
+      const cachedReqId =  pullPeer.getUserData('reqId');
+
       const peerMember = this.callGroup.members.get(meetingMessage.peerId) as MeetingMemeber;
       if(!peerMember) {
         await this.callGroup.callServiceApi.sendRespMsg(meetingMessage, 404, 'peer not found');
         return;
       }
-      var pullEndpont = this.pullEndpoints.get(meetingMessage.peerId);
-      if(pullEndpont) {
-        if(reqId === pullEndpont.getUserData('reqId')) {
-          await this.sendMediaReply(meetingMessage, 200, 'ok cached', pullEndpont.getSdpAnswer());
-          return;
-        } else {
-          try {
-            pullEndpont.release();
-          } catch (error) {
-            console.error('release pullEndpoint error', error);
-          }
-          this.pullEndpoints.delete(meetingMessage.peerId);
-          pullEndpont = undefined;
-        }
+      if(reqId === cachedReqId) {
+        await this.sendMediaReply(meetingMessage, 200, 'ok cached', pullPeer.cachedSdpAnswer);
+        return;
       }
-      
       try {
         const pullEndpont = await this.createVideoEndpointForUserId(meetingMessage.peerId);
-        pullEndpont.setUserData('reqId', reqId);
-        this.pullEndpoints.set(meetingMessage.peerId, pullEndpont);
         const sdpAnswer = await pullEndpont.processOffer(meetingMessage.sdpOffer);
-        await this.sendMediaReply(meetingMessage, 200, 'ok', sdpAnswer);
-        if(peerMember.pushEndpoint) {
-          peerMember.pushEndpoint.connectSendTo(pullEndpont, 'VIDEO');
+        pullPeer.setEndpoint(pullEndpont);
+        pullPeer.setUserData('reqId', reqId);
+        pullPeer.cachedSdpAnswer = sdpAnswer;
+        if(peerMember.pushPeer&&peerMember.pushPeer.endpoint) {
+          peerMember.pushPeer.endpoint.connectSendTo(pullEndpont, 'VIDEO');
         }
+        await this.sendMediaReply(meetingMessage, 200, 'ok', sdpAnswer);
       } catch (error) {
         console.error('createEndpoint error', error);
         await this.callGroup.callServiceApi.sendRespMsg(meetingMessage, 500, 'create media member error');
       }
     }
     public async handleMediaVideoIce(meetingMessage: constdomain.request_call_video_ice) {
-      let iceEndpoint = null;
       if(!meetingMessage.peerId) {
         await this.callGroup.callServiceApi.sendRespMsg(meetingMessage, 404, 'peerId not found');
         return;
       }
       if(meetingMessage.peerId === this.userId) {
-        iceEndpoint = this.pushEndpoint;
+        const icePeer = this.pushPeer;
+        if(icePeer) {
+          icePeer.runInQueue(async () => {
+            await this._handleMediaVideoIce(icePeer,meetingMessage);
+          });
+        }
       } else {
-        iceEndpoint = this.pullEndpoints.get(meetingMessage.peerId);
+        const icePeer = this.pullPeers.get(meetingMessage.peerId);
+        if(icePeer) {
+          icePeer.runInQueue(async () => {
+            await this._handleMediaVideoIce(icePeer,meetingMessage);
+          });
+        }
       }
-      if(!iceEndpoint) {
-        await this.callGroup.callServiceApi.sendRespMsg(meetingMessage, 404, 'iceEndpoint not found');
+    }
+    public async _handleMediaVideoIce(videoPeer: VideoMediaPeer, meetingMessage: constdomain.request_call_video_ice) {
+      if(!videoPeer.endpoint) {
+        await this.callGroup.callServiceApi.sendRespMsg(meetingMessage, 404, 'videoPeer.endpoint not found');
         return;
       }
       await this.callGroup.callServiceApi.sendRespMsg(meetingMessage, 200, 'ok');
       if(meetingMessage.ice.sdp && !meetingMessage.ice.candidate) {
         meetingMessage.ice.candidate = meetingMessage.ice.sdp;
       }
-      iceEndpoint.addIceCandidate(meetingMessage.ice);
+      videoPeer.endpoint.addIceCandidate(meetingMessage.ice);
     }
   }
 
