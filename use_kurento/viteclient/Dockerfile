@@ -15,7 +15,7 @@ COPY _keys /app/_keys
 RUN ls /app/_keys
 RUN pnpm build
 #CMD pnpm vite dev --host
-CMD pnpm serve -l 0.0.0.0:5173 --ssl-cert /app/_keys/server.crt --ssl-key /app/_keys/server.key /app/dist
+CMD pnpm serve -l tcp://0.0.0.0:5173 --ssl-cert /app/_keys/server.crt --ssl-key /app/_keys/server.key /app/dist
 
 
 
