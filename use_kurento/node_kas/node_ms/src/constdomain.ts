@@ -23,6 +23,8 @@ export const kIntercomStatus = 'intercomStatus';
 export const kIntercomSpeechCtrl = 'intercomSpeechCtrl';
 export const kMsgResponse = 'response';
 export const kMsgAck = 'ack';
+export const kMsgPing = 'ping';
+export const kMsgPong = 'pong';
 
 export const kMsgQueryMemberOnline = 'queryMemberOnline';
 export const kMsgQueryMemberAll = 'queryMemberAll';

@@ -40,7 +40,6 @@ class CallService implements CallServiceApi {
     }
     async start() {
       this.mqtt.on(constdomain.kMqttTopicMeetingService, (message) => {
-        console.log('m_ in_:', (new Date()).toISOString(), message);
         this.onMessage(message);
       });
       console.log(await this.mqtt.subscribeAsync(constdomain.kMqttTopicMeetingService));
@@ -48,6 +47,15 @@ class CallService implements CallServiceApi {
     }
     public async onMessage(message:string) {
       const meetingMessage = JSON.parse(message)
+      if(meetingMessage.type === constdomain.kMsgPing) {
+        meetingMessage.type = constdomain.kMsgPong;
+        // console.log('m_ in_1:', (new Date()).toISOString(), message);
+        // console.log('m_ in_2:', (new Date()).toISOString(), JSON.stringify(meetingMessage));
+        this.mqtt.publish(`user/${meetingMessage.userId}`, JSON.stringify(meetingMessage));
+        return;
+      } else {
+        console.log('m_ in_:', (new Date()).toISOString(), message);
+      }
       this.queueGlobal.enqueue(async () => {
         await this.handleMessage(meetingMessage);
       });

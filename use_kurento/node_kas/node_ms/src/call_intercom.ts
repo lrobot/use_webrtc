@@ -106,7 +106,7 @@ export class IntercomGroup extends CallGroup {
         }
       } else {
         if(this.currentSpeakerUser === "") {
-          await this.speechCtrlResponse(meetingMessage.reqId, meetingMessage.userId, 200, "no_speakder");
+          await this.speechCtrlResponse(meetingMessage.reqId, meetingMessage.userId, 200, "no_speaker");
         } else if(this.currentSpeakerUser === meetingMessage.userId) {
           this.setCurrentSpeaker("", constdomain.kDefaultSpeechLevel);
           await this.speechCtrlResponse(meetingMessage.reqId, meetingMessage.userId, 200, "ok");

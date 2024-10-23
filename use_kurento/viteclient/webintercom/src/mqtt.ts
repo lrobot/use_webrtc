@@ -7,11 +7,18 @@ import { appConfig } from "./appconfig";
 
 export class MqttClient {
     client: mqtt.MqttClient;
+    clientStatus: string = "uninit";
     clientConnected = false;
     userOnMessageMap: Map<string, (message:string)=>void> = new Map();
+    mqttStateCallBack: (state:string) => void = () => {};
+    setState(state:string) {
+        this.clientStatus = state;
+        this.mqttStateCallBack(state);
+    }
     constructor() {
         console.log("mqttUrl", appConfig.mqttUrl);
         this.client = mqtt.connect(appConfig.mqttUrl); // create a client
+        this.setState("inited");
         this.client.on("message", (topic, message) => {
             const username = topic.replace("user/", "");
             if(this.userOnMessageMap.has(username)){
@@ -21,6 +28,7 @@ export class MqttClient {
             }
         });
         this.client.on("connect", () => {
+            this.setState("connected");
             this.clientConnected = true;
             console.log("mqtt_connect ok", appConfig.mqttUrl);
             for(const [username,_] of this.userOnMessageMap) {
@@ -28,10 +36,12 @@ export class MqttClient {
             }
           })
         this.client.on("error", (err) => {
+            this.setState("error");
             this.clientConnected = false;
             console.log("mqtt_error", appConfig.mqttUrl, err);
         });
         this.client.on("disconnect", () => {
+            this.setState("disconnect");
             this.clientConnected = false;
             console.log("mqtt_disconnect", appConfig.mqttUrl);
         });
