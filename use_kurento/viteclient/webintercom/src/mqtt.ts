@@ -18,7 +18,7 @@ export class MqttClient {
     constructor() {
         console.log("mqttUrl", appConfig.mqttUrl);
         this.client = mqtt.connect(appConfig.mqttUrl); // create a client
-        this.setState("inited");
+        this.setState("connecting");
         this.client.on("message", (topic, message) => {
             const username = topic.replace("user/", "");
             if(this.userOnMessageMap.has(username)){
