@@ -127,12 +127,12 @@ export class CallMember {
     });
   }
   public async handleMessage(meetingMessage:any) {
-    this._handleMessage(meetingMessage);
+    await this._handleMessage(meetingMessage);
   }
   public async _handleMessage(meetingMessage:any) {
     switch (meetingMessage.type) {
       case constdomain.kCallJoin:
-        this.handleJoin(meetingMessage);
+        await this.handleJoin(meetingMessage);
         break;
       case constdomain.kCallLeave:
         await this.handleLeave(meetingMessage);
@@ -147,7 +147,7 @@ export class CallMember {
 
   async handleJoin(meetingMessage:any) {
     if(this.defaultMediaEndpoint.hasSdpAnswer()) {
-      await this.sendJoinReply(meetingMessage, 200, 'ok', this.defaultMediaEndpoint.getSdpAnswer(), false);
+      await this.sendJoinReply(meetingMessage, 200, 'ok use cache sdp', this.defaultMediaEndpoint.getSdpAnswer(), false);
     }else {
       const sdpAnswer = await this.defaultMediaEndpoint.processOffer(meetingMessage.sdpOffer);
       await this.sendJoinReply(meetingMessage, 200, 'ok', sdpAnswer, true);
@@ -248,18 +248,19 @@ export class CallGroup {
   }
   async tryLoadMeetingMember(meetingMessage:any) {
     var meetingMember = null;
-    if(meetingMessage.userId) {
-      meetingMember = this.members.get(meetingMessage.userId);
-    }
+    if(!meetingMessage.userId) return;
+    meetingMember = this.members.get(meetingMessage.userId);
     if(meetingMessage.type === constdomain.kCallJoin) {
-      if(meetingMember && meetingMember.callId !== meetingMessage.callId) {
-        //delete exist old member
-        meetingMember.release();
-        meetingMember = null;
-        this.members.delete(meetingMessage.userId);
-      }
+      if(meetingMember){
+        console.log('constdomain.kCallJoin meetingMember.callId vs meetingMessage.callId', meetingMember.callId, meetingMessage.callId);
+        if(meetingMember.callId !== meetingMessage.callId) {
+          //delete exist old member
+          meetingMember.release();
+          meetingMember = null;
+          this.members.delete(meetingMessage.userId);
+        }
+      } 
       if(!meetingMember) {
-        if(meetingMessage.userId === undefined) return;
         try {
           const mediaEndpoint = await this.mediaGroup.createEndpoint();
           meetingMember = await this.callServiceApi.createMember(this, meetingMessage, mediaEndpoint);
@@ -269,7 +270,7 @@ export class CallGroup {
           return; 
         }
         this.members.set(meetingMessage.userId, meetingMember);
-      }  
+      }
     }
     return meetingMember;
   }

@@ -11,7 +11,7 @@ class RtcMain {
   mediaCenter: meetingMediaApi.MediaCenter
   callServiceApi: CallService
     constructor() {
-        console.log('RtcMain constructor');
+        console.log('RtcMain constructor', constdomain.mqttUrl);
         this.qmqttclient = new QMqttClient(constdomain.mqttUrl);
         this.mediaCenter = meetingMedia.getMeetingCenterKurento(constdomain.kurentoUrl);
         this.callServiceApi = new CallService(this.mediaCenter, this.qmqttclient);

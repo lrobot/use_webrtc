@@ -266,6 +266,10 @@ export class MeetingGroup extends CallGroup {
           case constdomain.kMsgMeetingCtrl:
             await this.handleMeetingCtrl(meetingMessage);
             break;
+          case constdomain.kCallJoin:
+            await this._handleMessage(meetingMessage);
+            this.broadcastMemberStatus(meetingMember, meetingMessage.userId);
+            break;
           default:
             await this._handleMessage(meetingMessage);
             break;

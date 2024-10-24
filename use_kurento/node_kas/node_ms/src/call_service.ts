@@ -14,6 +14,7 @@ class CallService implements CallServiceApi {
     callGroups:Map<string, CallGroup> = new Map<string, CallGroup>();
     msgTrans: MsgTrans;
     queueGlobal: PromiseFifoQueue = new PromiseFifoQueue();
+    inviteReqIds: Set<string> = new Set<string>();
   
     constructor(mediaCenter: meetingMediaApi.MediaCenter, mqtt: QMqttClient) {
       this.mqtt = mqtt
@@ -91,7 +92,15 @@ class CallService implements CallServiceApi {
       }
       switch (meetingMessage.type) {
         case constdomain.kCallInvite:
+          const reqId = meetingMessage.reqId;
           await this.sendRespMsg(meetingMessage, 200, 'ok');
+          if(this.inviteReqIds.has(reqId)) {
+            return;
+          }
+          this.inviteReqIds.add(reqId);
+          setTimeout(() => {
+            this.inviteReqIds.delete(reqId);
+          }, 60*1000);
           if(meetingMessage.grpId) {
             //todo invite by query member in group
             console.log('todo invite by query member in group');
